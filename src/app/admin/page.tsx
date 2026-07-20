@@ -324,7 +324,10 @@ export default function AdminPage() {
 
   // Toggle Voting Active status
   const handleToggleActive = async () => {
-    if (!config) return;
+    if (!config) {
+      alert('Por favor, configure e salve as configurações do Paredão antes de abrir a votação!');
+      return;
+    }
     setStatusLoading(true);
     try {
       const updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, {
@@ -375,17 +378,26 @@ export default function AdminPage() {
   // Save configurations
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!config) return;
 
     setSaveLoading(true);
     setSaveSuccess(false);
 
     try {
-      const updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, {
-        titulo: editTitle,
-        expira_em: new Date(editExpire).toISOString(),
-        tipo: editType
-      });
+      const data = {
+        titulo: editTitle || 'Quem você quer que continue na Mansão?',
+        expira_em: editExpire ? new Date(editExpire).toISOString() : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        tipo: editType || 'individual'
+      };
+
+      let updated;
+      if (config) {
+        updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, data);
+      } else {
+        updated = await pb.collection('votacoes_config').create<VotacaoConfig>({
+          ...data,
+          ativa: false
+        });
+      }
       setConfig(updated);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
