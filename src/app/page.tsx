@@ -388,7 +388,7 @@ export default function Home() {
               }`}
             >
               <Vote className="w-4 h-4" />
-              Paredão
+              Votação
             </button>
             <button
               onClick={() => setActiveTab('participantes')}
