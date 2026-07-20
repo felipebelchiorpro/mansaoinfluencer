@@ -1,0 +1,340 @@
+[
+  {
+    "name": "candidatos",
+    "type": "base",
+    "schema": [
+      {
+        "name": "nome",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "instagram",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "foto_url",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "foto_file",
+        "type": "file",
+        "required": false,
+        "options": {
+          "maxSelect": 1,
+          "maxSize": 5242880,
+          "thumbs": [],
+          "mimeTypes": ["image/jpeg", "image/png", "image/gif", "image/webp"]
+        }
+      },
+      {
+        "name": "votos_count",
+        "type": "number",
+        "required": false,
+        "options": {
+          "min": 0
+        }
+      },
+      {
+        "name": "eliminado",
+        "type": "bool",
+        "required": false
+      },
+      {
+        "name": "ativo",
+        "type": "bool",
+        "required": false
+      }
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": null,
+    "updateRule": "",
+    "deleteRule": null
+  },
+  {
+    "name": "votacoes_config",
+    "type": "base",
+    "schema": [
+      {
+        "name": "titulo",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "ativa",
+        "type": "bool",
+        "required": false
+      },
+      {
+        "name": "expira_em",
+        "type": "date",
+        "required": true
+      },
+      {
+        "name": "tipo",
+        "type": "text",
+        "required": false
+      }
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null
+  },
+  {
+    "name": "patrocinadores",
+    "type": "base",
+    "schema": [
+      {
+        "name": "nome",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "logo_url",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "logo_file",
+        "type": "file",
+        "required": false,
+        "options": {
+          "maxSelect": 1,
+          "maxSize": 5242880,
+          "thumbs": [],
+          "mimeTypes": ["image/jpeg", "image/png", "image/gif", "image/webp"]
+        }
+      },
+      {
+        "name": "link_site",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "instagram",
+        "type": "text",
+        "required": false
+      }
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null
+  },
+  {
+    "name": "grupos",
+    "type": "base",
+    "schema": [
+      {
+        "name": "nome",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "video_url",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "video_file",
+        "type": "file",
+        "required": false,
+        "options": {
+          "maxSelect": 1,
+          "maxSize": 104857600,
+          "thumbs": [],
+          "mimeTypes": ["video/mp4", "video/webm", "video/quicktime"]
+        }
+      },
+      {
+        "name": "patrocinador",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "patrocinadores",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "membros",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "candidatos",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": null,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "votos_count",
+        "type": "number",
+        "required": false,
+        "options": {
+          "min": 0
+        }
+      }
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": null,
+    "updateRule": "",
+    "deleteRule": null
+  },
+  {
+    "name": "historico_votacoes",
+    "type": "base",
+    "schema": [
+      {
+        "name": "titulo",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "tipo",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "ganhador",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "votos_ganhador",
+        "type": "number",
+        "required": true
+      },
+      {
+        "name": "votos_totais",
+        "type": "number",
+        "required": true
+      },
+      {
+        "name": "detalhes",
+        "type": "json",
+        "required": true,
+        "options": {
+          "maxSize": 2000000
+        }
+      },
+      {
+        "name": "data_encerramento",
+        "type": "date",
+        "required": true
+      }
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null
+  },
+  {
+    "name": "etapas",
+    "type": "base",
+    "schema": [
+      {
+        "name": "nome",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "ativa",
+        "type": "bool",
+        "required": false
+      },
+      {
+        "name": "descricao",
+        "type": "text",
+        "required": false
+      }
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null
+  },
+  {
+    "name": "grupo_videos",
+    "type": "base",
+    "schema": [
+      {
+        "name": "grupo",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "grupos",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "etapa",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "etapas",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "video_url",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "video_file",
+        "type": "file",
+        "required": false,
+        "options": {
+          "maxSelect": 1,
+          "maxSize": 104857600,
+          "thumbs": [],
+          "mimeTypes": ["video/mp4", "video/webm", "video/quicktime"]
+        }
+      },
+      {
+        "name": "patrocinador",
+        "type": "relation",
+        "required": false,
+        "options": {
+          "collectionId": "patrocinadores",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "votos_count",
+        "type": "number",
+        "required": false,
+        "options": {
+          "min": 0
+        }
+      }
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": null,
+    "updateRule": "",
+    "deleteRule": null
+  }
+]

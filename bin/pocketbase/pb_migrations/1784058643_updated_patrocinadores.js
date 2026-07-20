@@ -1,0 +1,126 @@
+/// <reference path="../pb_data/types.d.ts" />
+migrate((db) => {
+  const dao = new Dao(db)
+  const collection = dao.findCollectionByNameOrId("eagpfydg213gn1w")
+
+  // remove
+  collection.schema.removeField("xtnmk0lq")
+
+  // remove
+  collection.schema.removeField("u2nnzfwo")
+
+  // remove
+  collection.schema.removeField("kzos2dhi")
+
+  // add
+  collection.schema.addField(new SchemaField({
+    "system": false,
+    "id": "lhajqege",
+    "name": "nome",
+    "type": "text",
+    "required": true,
+    "presentable": false,
+    "unique": false,
+    "options": {
+      "min": null,
+      "max": null,
+      "pattern": ""
+    }
+  }))
+
+  // add
+  collection.schema.addField(new SchemaField({
+    "system": false,
+    "id": "4vitqbve",
+    "name": "logo_url",
+    "type": "text",
+    "required": false,
+    "presentable": false,
+    "unique": false,
+    "options": {
+      "min": null,
+      "max": null,
+      "pattern": ""
+    }
+  }))
+
+  // add
+  collection.schema.addField(new SchemaField({
+    "system": false,
+    "id": "whf8dxht",
+    "name": "link_site",
+    "type": "text",
+    "required": false,
+    "presentable": false,
+    "unique": false,
+    "options": {
+      "min": null,
+      "max": null,
+      "pattern": ""
+    }
+  }))
+
+  return dao.saveCollection(collection)
+}, (db) => {
+  const dao = new Dao(db)
+  const collection = dao.findCollectionByNameOrId("eagpfydg213gn1w")
+
+  // add
+  collection.schema.addField(new SchemaField({
+    "system": false,
+    "id": "xtnmk0lq",
+    "name": "nome",
+    "type": "text",
+    "required": true,
+    "presentable": false,
+    "unique": false,
+    "options": {
+      "min": null,
+      "max": null,
+      "pattern": ""
+    }
+  }))
+
+  // add
+  collection.schema.addField(new SchemaField({
+    "system": false,
+    "id": "u2nnzfwo",
+    "name": "logo_url",
+    "type": "text",
+    "required": false,
+    "presentable": false,
+    "unique": false,
+    "options": {
+      "min": null,
+      "max": null,
+      "pattern": ""
+    }
+  }))
+
+  // add
+  collection.schema.addField(new SchemaField({
+    "system": false,
+    "id": "kzos2dhi",
+    "name": "link_site",
+    "type": "text",
+    "required": false,
+    "presentable": false,
+    "unique": false,
+    "options": {
+      "min": null,
+      "max": null,
+      "pattern": ""
+    }
+  }))
+
+  // remove
+  collection.schema.removeField("lhajqege")
+
+  // remove
+  collection.schema.removeField("4vitqbve")
+
+  // remove
+  collection.schema.removeField("whf8dxht")
+
+  return dao.saveCollection(collection)
+})
