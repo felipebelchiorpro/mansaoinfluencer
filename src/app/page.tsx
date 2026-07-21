@@ -861,15 +861,15 @@ export default function Home() {
                       target="_blank"
                       rel="noreferrer"
                       title={sponsor.instagram ? `Abrir Instagram de ${sponsor.nome}` : `Visitar site de ${sponsor.nome}`}
-                      className="opacity-45 hover:opacity-100 transition-all duration-300 group flex items-center gap-2.5 shrink-0 cursor-pointer"
+                      className="opacity-45 hover:opacity-100 transition-all duration-300 group flex items-center gap-3 shrink-0 cursor-pointer"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={getSponLogo(sponsor)}
                         alt={sponsor.nome}
-                        className="h-6 sm:h-7 grayscale group-hover:grayscale-0 transition-all duration-300 rounded object-contain bg-white"
+                        className="h-10 sm:h-14 grayscale group-hover:grayscale-0 transition-all duration-300 rounded object-contain bg-white"
                       />
-                      <span className="font-bold text-xs text-slate-500 sm:text-sm group-hover:text-slate-900 transition-colors">
+                      <span className="font-bold text-sm text-slate-500 sm:text-base group-hover:text-slate-900 transition-colors">
                         {sponsor.nome}
                       </span>
                     </a>
@@ -889,15 +889,15 @@ export default function Home() {
                       target="_blank"
                       rel="noreferrer"
                       title={sponsor.instagram ? `Abrir Instagram de ${sponsor.nome}` : `Visitar site de ${sponsor.nome}`}
-                      className="opacity-45 hover:opacity-100 transition-all duration-300 group flex items-center gap-2.5 shrink-0 cursor-pointer"
+                      className="opacity-45 hover:opacity-100 transition-all duration-300 group flex items-center gap-3 shrink-0 cursor-pointer"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={getSponLogo(sponsor)}
                         alt={sponsor.nome}
-                        className="h-6 sm:h-7 grayscale group-hover:grayscale-0 transition-all duration-300 rounded object-contain bg-white"
+                        className="h-10 sm:h-14 grayscale group-hover:grayscale-0 transition-all duration-300 rounded object-contain bg-white"
                       />
-                      <span className="font-bold text-xs text-slate-500 sm:text-sm group-hover:text-slate-900 transition-colors">
+                      <span className="font-bold text-sm text-slate-500 sm:text-base group-hover:text-slate-900 transition-colors">
                         {sponsor.nome}
                       </span>
                     </a>
