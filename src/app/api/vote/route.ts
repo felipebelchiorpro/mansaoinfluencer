@@ -153,7 +153,7 @@ export async function POST(request: Request) {
         );
       }
 
-      if (candidate.eliminado) {
+      if (activeConfig.tipo !== 'repescagem' && candidate.eliminado) {
         return NextResponse.json(
           { error: 'Este candidato está eliminado e não pode receber votos.' },
           { status: 400 }

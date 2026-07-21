@@ -423,7 +423,11 @@ export default function Home() {
                 <div className="w-full text-center bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col items-center max-w-3xl animate-fadeIn">
                   <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 mb-4">
                     <Sparkles className="w-3.5 h-3.5" />
-                    {config?.tipo === 'grupo' ? 'Votação Especial de Grupos' : 'Paredão Individual'}
+                    {config?.tipo === 'grupo' 
+                      ? 'Votação Especial de Grupos' 
+                      : config?.tipo === 'repescagem' 
+                      ? 'Repescagem Oficial' 
+                      : 'Paredão Individual'}
                   </div>
                   
                   <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 leading-tight max-w-2xl">
@@ -618,13 +622,18 @@ export default function Home() {
                   // INDIVIDUAL VOTING VIEW (With eliminated grayscale block)
                   <div className="w-full max-w-4xl flex flex-col gap-6 animate-fadeIn">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center sm:text-left">
-                      Quem você quer que continue na Mansão?
+                      {config?.tipo === 'repescagem' ? 'Escolha quem deve retornar ao reality:' : 'Quem você quer que continue na Mansão?'}
                     </h3>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                      {candidates.filter((c) => c.ativo === true && !c.eliminado).map((candidate) => {
-                        const isEliminated = candidate.eliminado;
-                        const isActive = candidate.ativo !== false;
+                      {candidates.filter((c) => {
+                        if (config?.tipo === 'repescagem') {
+                          return c.ativo === true;
+                        }
+                        return true; // individual shows all
+                      }).map((candidate) => {
+                        const isEliminated = config?.tipo === 'repescagem' ? false : candidate.eliminado;
+                        const isActive = config?.tipo === 'repescagem' ? true : candidate.ativo !== false;
                         const isGray = isEliminated || !isActive;
                         
                         return (
@@ -819,7 +828,7 @@ export default function Home() {
           .animate-marquee {
             display: flex;
             width: max-content;
-            animation: marquee 30s linear infinite;
+            animation: marquee 90s linear infinite;
           }
           .animate-marquee:hover {
             animation-play-state: paused;

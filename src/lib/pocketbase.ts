@@ -20,7 +20,7 @@ export interface VotacaoConfig {
   titulo: string;
   ativa: boolean;
   expira_em: string;
-  tipo: 'individual' | 'grupo';
+  tipo: 'individual' | 'grupo' | 'repescagem';
 }
 
 export interface Patrocinador {
@@ -55,7 +55,7 @@ export interface HistoricoVotacao {
   created: string;
   updated: string;
   titulo: string;
-  tipo: 'individual' | 'grupo';
+  tipo: 'individual' | 'grupo' | 'repescagem';
   ganhador: string;
   votos_ganhador: number;
   votos_totais: number;

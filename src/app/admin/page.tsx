@@ -78,7 +78,7 @@ export default function AdminPage() {
   // Dashboard Config Form State
   const [editTitle, setEditTitle] = useState('');
   const [editExpire, setEditExpire] = useState('');
-  const [editType, setEditType] = useState<'individual' | 'grupo'>('individual');
+  const [editType, setEditType] = useState<'individual' | 'grupo' | 'repescagem'>('individual');
   const [saveLoading, setSaveLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1000,7 +1000,9 @@ export default function AdminPage() {
   };
 
   // Calculations
-  const activeCandidates = candidates.filter(c => c.ativo === true && !c.eliminado);
+  const activeCandidates = config?.tipo === 'repescagem'
+    ? candidates.filter(c => c.ativo === true)
+    : candidates.filter(c => c.ativo === true && !c.eliminado);
   const totalVotesCandidates = activeCandidates.reduce((sum, c) => sum + c.votos_count, 0);
   const totalVotesGroups = groups.reduce((sum, g) => sum + g.votos_count, 0);
   const activeTotalVotes = config?.tipo === 'grupo' ? totalVotesGroups : totalVotesCandidates;
@@ -1435,11 +1437,12 @@ export default function AdminPage() {
                       <select
                         id="type"
                         value={editType}
-                        onChange={(e) => setEditType(e.target.value as 'individual' | 'grupo')}
+                        onChange={(e) => setEditType(e.target.value as 'individual' | 'grupo' | 'repescagem')}
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-850 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-semibold text-sm bg-white"
                       >
                         <option value="individual">Individual (Influenciadores)</option>
                         <option value="grupo">Grupo (Desafio de Patrocinadores)</option>
+                        <option value="repescagem">Repescagem (Domingo - 4 Participantes)</option>
                       </select>
                     </div>
 
@@ -1523,7 +1526,7 @@ export default function AdminPage() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleCandidateAtivo(cand.id, isActive)}
-                                disabled={isEliminated || actionLoadingId === cand.id}
+                                disabled={actionLoadingId === cand.id}
                                 className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
                                   isActive && !isEliminated ? 'bg-blue-600' : 'bg-slate-200'
                                 } ${isEliminated ? 'cursor-not-allowed opacity-50' : ''}`}
