@@ -81,7 +81,7 @@ export default function Home() {
           sort: 'nome',
           requestKey: 'page_candidates'
         });
-        setCandidates(candidatesList);
+        setCandidates(candidatesList.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })));
 
         // Fetch sponsors
         const sponsorsList = await pb.collection('patrocinadores').getFullList<Patrocinador>({
@@ -130,7 +130,7 @@ export default function Home() {
           prev.map((c) => (c.id === e.record.id ? { ...c, ...e.record } : c))
         );
       } else if (e.action === 'create') {
-        setCandidates((prev) => [...prev, e.record as unknown as Candidato].sort((a, b) => a.nome.localeCompare(b.nome)));
+        setCandidates((prev) => [...prev, e.record as unknown as Candidato].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })));
       } else if (e.action === 'delete') {
         setCandidates((prev) => prev.filter((c) => c.id !== e.record.id));
       }
