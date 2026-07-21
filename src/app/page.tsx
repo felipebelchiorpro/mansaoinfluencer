@@ -622,7 +622,7 @@ export default function Home() {
                     </h3>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                      {candidates.map((candidate) => {
+                      {candidates.filter((c) => c.ativo === true && !c.eliminado).map((candidate) => {
                         const isEliminated = candidate.eliminado;
                         const isActive = candidate.ativo !== false;
                         const isGray = isEliminated || !isActive;

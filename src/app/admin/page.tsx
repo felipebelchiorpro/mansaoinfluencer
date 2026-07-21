@@ -451,10 +451,10 @@ export default function AdminPage() {
         detailsBreakdown = groups.map(g => ({ id: g.id, nome: g.nome, votos: g.votos_count }));
       } else {
         // Find winning candidate
-        const winner = [...candidates].filter(c => !c.eliminado).sort((a, b) => b.votos_count - a.votos_count)[0];
+        const winner = [...activeCandidates].sort((a, b) => b.votos_count - a.votos_count)[0];
         winnerName = winner?.nome || 'Nenhum';
         winnerVotes = winner?.votos_count || 0;
-        detailsBreakdown = candidates.map(c => ({ id: c.id, nome: c.nome, votos: c.votos_count, eliminado: c.eliminado }));
+        detailsBreakdown = activeCandidates.map(c => ({ id: c.id, nome: c.nome, votos: c.votos_count, eliminado: c.eliminado }));
       }
 
       await pb.collection('historico_votacoes').create({
@@ -1000,7 +1000,8 @@ export default function AdminPage() {
   };
 
   // Calculations
-  const totalVotesCandidates = candidates.reduce((sum, c) => sum + c.votos_count, 0);
+  const activeCandidates = candidates.filter(c => c.ativo === true && !c.eliminado);
+  const totalVotesCandidates = activeCandidates.reduce((sum, c) => sum + c.votos_count, 0);
   const totalVotesGroups = groups.reduce((sum, g) => sum + g.votos_count, 0);
   const activeTotalVotes = config?.tipo === 'grupo' ? totalVotesGroups : totalVotesCandidates;
 
@@ -1359,7 +1360,7 @@ export default function AdminPage() {
                       );
                     })
                   ) : (
-                    candidates.map((candidate, index) => {
+                    activeCandidates.map((candidate, index) => {
                       const percentage = totalVotesCandidates > 0 ? (candidate.votos_count / totalVotesCandidates) * 100 : 0;
                       return (
                         <div key={candidate.id} className={`flex flex-col gap-2 ${candidate.eliminado ? 'opacity-50' : ''}`}>
