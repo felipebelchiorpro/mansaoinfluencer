@@ -15,6 +15,9 @@ export default function AdminIpadPage() {
   // Active Admin Sub-tab
   const [activeSubTab, setActiveSubTab] = useState<AdminTab>('dashboard');
 
+  // Sidebar collapsibility state for responsiveness on tablets/mobiles
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   // Database Data
   const [candidates, setCandidates] = useState<Candidato[]>([]);
   const [sponsors, setSponsors] = useState<Patrocinador[]>([]);
@@ -87,6 +90,50 @@ export default function AdminIpadPage() {
   // Global actions loading
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
+  // Cross-browser safe date parser (Avoids iOS Safari / legacy timezone parsing bugs)
+  const safeParseDate = (dateStr: any): Date => {
+    if (!dateStr) return new Date();
+    let s = String(dateStr).trim();
+    
+    // Split on typical delimiters: -, T, :, space, dot, Z
+    const parts = s.split(/[-T :.Z+]/);
+    if (parts.length >= 5) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const hour = parseInt(parts[3], 10);
+      const minute = parseInt(parts[4], 10);
+      const second = parts[5] ? parseInt(parts[5], 10) : 0;
+      
+      // If it ends with Z or was parsed as UTC
+      if (s.endsWith('Z') || s.includes('+00')) {
+        return new Date(Date.UTC(year, month, day, hour, minute, second));
+      }
+      return new Date(year, month, day, hour, minute, second);
+    }
+    return new Date(s);
+  };
+
+  // Convert Date object to YYYY-MM-DDTHH:MM format locally for input value
+  const formatDatetimeLocal = (date: Date): string => {
+    if (isNaN(date.getTime())) return '';
+    const pad = (n: number) => (n < 10 ? '0' + n : n);
+    const y = date.getFullYear();
+    const m = pad(date.getMonth() + 1);
+    const d = pad(date.getDate());
+    const h = pad(date.getHours());
+    const min = pad(date.getMinutes());
+    return `${y}-${m}-${d}T${h}:${min}`;
+  };
+
+  // Safe short date format (Avoids toLocaleDateString {dateStyle: 'short'} crash on iOS < 13)
+  const formatShortDate = (dateStr: string): string => {
+    const d = safeParseDate(dateStr);
+    if (isNaN(d.getTime())) return '-';
+    const pad = (n: number) => (n < 10 ? '0' + n : n);
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  };
+
   // Check saved session on mount
   useEffect(() => {
     const savedSession = sessionStorage.getItem('admin_authenticated');
@@ -141,11 +188,8 @@ export default function AdminIpadPage() {
           setEditTitle(activeConfig.titulo);
           setEditType(activeConfig.tipo || 'individual');
           
-          // Format date for datetime-local
-          const date = new Date(activeConfig.expira_em);
-          const tzOffset = date.getTimezoneOffset() * 60000;
-          const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().slice(0, 16);
-          setEditExpire(localISOTime);
+          const date = safeParseDate(activeConfig.expira_em);
+          setEditExpire(formatDatetimeLocal(date));
         }
 
         // Fetch stages (etapas)
@@ -252,10 +296,9 @@ export default function AdminIpadPage() {
         setConfig(updatedConfig);
         setEditTitle(updatedConfig.titulo);
         setEditType(updatedConfig.tipo || 'individual');
-        const date = new Date(updatedConfig.expira_em);
-        const tzOffset = date.getTimezoneOffset() * 60000;
-        const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().slice(0, 16);
-        setEditExpire(localISOTime);
+        
+        const date = safeParseDate(updatedConfig.expira_em);
+        setEditExpire(formatDatetimeLocal(date));
       }
     });
 
@@ -347,9 +390,10 @@ export default function AdminIpadPage() {
     setSaveSuccess(false);
 
     try {
+      const parsedDate = safeParseDate(editExpire);
       const data = {
         titulo: editTitle || 'Quem você quer que continue na Mansão?',
-        expira_em: editExpire ? new Date(editExpire).toISOString() : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        expira_em: parsedDate.toISOString(),
         tipo: editType || 'individual'
       };
 
@@ -823,7 +867,7 @@ export default function AdminIpadPage() {
           }
         }
       }
-      alert('Etapa ativa atualizada com sucesso!');
+      alert('Etapa activa atualizada com sucesso!');
     } catch (err) {
       console.error(err);
       alert('Erro ao atualizar a etapa ativa.');
@@ -1013,33 +1057,69 @@ export default function AdminIpadPage() {
         <tbody>
           <tr>
             {/* Sidebar Navigation Column */}
-            <td style={{ width: '240px', verticalAlign: 'top', backgroundColor: '#ffffff', borderRight: '1px solid #e2e8f0', padding: '20px 15px', height: '100vh' }}>
-              <div style={{ paddingBottom: '20px', borderBottom: '1px solid #f1f5f9', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a', margin: '0 0 5px 0' }}>Mansão Admin</h2>
-                <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>Versão iPad Legado</span>
+            <td 
+              style={{ 
+                width: isSidebarCollapsed ? '70px' : '240px', 
+                verticalAlign: 'top', 
+                backgroundColor: '#ffffff', 
+                borderRight: '1px solid #e2e8f0', 
+                padding: '15px 10px', 
+                height: '100vh',
+                transition: 'width 0.2s ease-out'
+              }}
+            >
+              {/* Collapse/Expand Sidebar Trigger */}
+              <div style={{ paddingBottom: '15px', borderBottom: '1px solid #f1f5f9', marginBottom: '15px' }}>
+                <button
+                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 4px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    color: '#2563eb',
+                    backgroundColor: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    marginBottom: '12px',
+                    textAlign: 'center'
+                  }}
+                >
+                  {isSidebarCollapsed ? '▶ Menu' : '◀ Recolher Menu'}
+                </button>
+                
+                {!isSidebarCollapsed ? (
+                  <>
+                    <h2 style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a', margin: '0 0 3px 0' }}>Mansão Admin</h2>
+                    <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>iPad Compatível</span>
+                  </>
+                ) : (
+                  <div style={{ fontSize: '11px', fontWeight: 'black', color: '#2563eb', textAlign: 'center' }}>M.A.</div>
+                )}
               </div>
 
               {/* Navigation Links using table for layout */}
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   {[
-                    { id: 'dashboard', label: '📊 Painel Geral' },
-                    { id: 'candidatos', label: '👥 Influenciadores' },
-                    { id: 'patrocinadores', label: '💎 Patrocinadores' },
-                    { id: 'grupos', label: '🛡️ Grupos' },
-                    { id: 'etapas', label: '🎬 Etapas & Vídeos' },
-                    { id: 'historico', label: '📜 Histórico' },
-                    { id: 'equipe', label: '👤 Equipe Admin' },
+                    { id: 'dashboard', label: 'Painel Geral', emoji: '📊' },
+                    { id: 'candidatos', label: 'Influenciadores', emoji: '👥' },
+                    { id: 'patrocinadores', label: 'Patrocinadores', emoji: '💎' },
+                    { id: 'grupos', label: 'Grupos', emoji: '🛡️' },
+                    { id: 'etapas', label: 'Etapas & Vídeos', emoji: '🎬' },
+                    { id: 'historico', label: 'Histórico', emoji: '📜' },
+                    { id: 'equipe', label: 'Equipe Admin', emoji: '👤' },
                   ].map((tab) => {
                     const isActive = activeSubTab === tab.id;
                     return (
                       <tr key={tab.id}>
-                        <td style={{ padding: '4px 0' }}>
+                        <td style={{ padding: '3px 0' }}>
                           <button
                             onClick={() => setActiveSubTab(tab.id as AdminTab)}
                             style={{
                               width: '100%',
-                              textAlign: 'left',
+                              textAlign: isSidebarCollapsed ? 'center' : 'left',
                               padding: '10px 12px',
                               fontSize: '13px',
                               fontWeight: 'bold',
@@ -1049,20 +1129,22 @@ export default function AdminIpadPage() {
                               borderRadius: '6px',
                               cursor: 'pointer'
                             }}
+                            title={tab.label}
                           >
-                            {tab.label}
+                            <span style={{ marginRight: isSidebarCollapsed ? '0' : '8px', fontSize: '14px' }}>{tab.emoji}</span>
+                            {!isSidebarCollapsed && tab.label}
                           </button>
                         </td>
                       </tr>
                     );
                   })}
                   <tr>
-                    <td style={{ padding: '20px 0 0 0' }}>
+                    <td style={{ padding: '15px 0 0 0' }}>
                       <button
                         onClick={handleLogout}
                         style={{
                           width: '100%',
-                          textAlign: 'left',
+                          textAlign: isSidebarCollapsed ? 'center' : 'left',
                           padding: '10px 12px',
                           fontSize: '13px',
                           fontWeight: 'bold',
@@ -1072,8 +1154,10 @@ export default function AdminIpadPage() {
                           borderRadius: '6px',
                           cursor: 'pointer'
                         }}
+                        title="Sair do Painel"
                       >
-                        🚪 Sair do Painel
+                        <span style={{ marginRight: isSidebarCollapsed ? '0' : '8px', fontSize: '14px' }}>🚪</span>
+                        {!isSidebarCollapsed && 'Sair do Painel'}
                       </button>
                     </td>
                   </tr>
@@ -1082,14 +1166,14 @@ export default function AdminIpadPage() {
             </td>
 
             {/* Main Content Column */}
-            <td style={{ verticalAlign: 'top', padding: '25px', backgroundColor: '#f8fafc' }}>
+            <td style={{ verticalAlign: 'top', padding: '20px', backgroundColor: '#f8fafc' }}>
               
               {/* Header Info */}
-              <div style={{ marginBottom: '25px', paddingBottom: '15px', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '1px' }}>
                   Controle em Tempo Real
                 </span>
-                <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', margin: '5px 0 0 0' }}>
+                <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0' }}>
                   {activeSubTab === 'dashboard' && 'Painel de Controle Geral'}
                   {activeSubTab === 'candidatos' && 'Gerenciamento de Participantes'}
                   {activeSubTab === 'patrocinadores' && 'Gerenciamento de Patrocinadores'}
@@ -1107,7 +1191,7 @@ export default function AdminIpadPage() {
                   <div style={{ clear: 'both', overflow: 'auto', marginBottom: '20px' }}>
                     <div style={{ float: 'left', width: '31%', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', marginRight: '3%', boxSizing: 'border-box' }}>
                       <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Status da Votação</span>
-                      <h3 style={{ fontSize: '18px', fontWeight: 900, color: config?.ativa ? '#16a34a' : '#dc2626', margin: '5px 0 10px 0' }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: 900, color: config?.ativa ? '#16a34a' : '#dc2626', margin: '5px 0 10px 0' }}>
                         {config?.ativa ? '🟢 NO AR (ABERTA)' : '🔴 FORA DO AR (FECHADA)'}
                       </h3>
                       <button 
@@ -1121,7 +1205,7 @@ export default function AdminIpadPage() {
 
                     <div style={{ float: 'left', width: '31%', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', marginRight: '3%', boxSizing: 'border-box' }}>
                       <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Total de Votos Registrados</span>
-                      <h3 style={{ fontSize: '24px', fontWeight: 955, color: '#0f172a', margin: '5px 0 10px 0' }}>
+                      <h3 style={{ fontSize: '22px', fontWeight: 950, color: '#0f172a', margin: '5px 0 10px 0' }}>
                         {activeTotalVotes.toLocaleString('pt-BR')}
                       </h3>
                       <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold' }}>Tipo: {config?.tipo.toUpperCase()}</span>
@@ -1355,11 +1439,11 @@ export default function AdminIpadPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left', backgroundColor: '#f8fafc' }}>
-                            <th style={{ padding: '8px', color: '#475569' }}>Foto</th>
-                            <th style={{ padding: '8px', color: '#475569' }}>Nome</th>
-                            <th style={{ padding: '8px', color: '#475569', textAlign: 'center' }}>Votação</th>
-                            <th style={{ padding: '8px', color: '#475569', textAlign: 'center' }}>Status</th>
-                            <th style={{ padding: '8px', color: '#475569', textAlign: 'right' }}>Ações</th>
+                            <th style={{ padding: '8px' }}>Foto</th>
+                            <th style={{ padding: '8px' }}>Nome</th>
+                            <th style={{ padding: '8px', textAlign: 'center' }}>Votação</th>
+                            <th style={{ padding: '8px', textAlign: 'center' }}>Status</th>
+                            <th style={{ padding: '8px', textAlign: 'right' }}>Ações</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1508,10 +1592,10 @@ export default function AdminIpadPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left', backgroundColor: '#f8fafc' }}>
-                            <th style={{ padding: '8px', color: '#475569' }}>Logo</th>
-                            <th style={{ padding: '8px', color: '#475569' }}>Marca</th>
-                            <th style={{ padding: '8px', color: '#475569' }}>Link</th>
-                            <th style={{ padding: '8px', color: '#475569', textAlign: 'right' }}>Ações</th>
+                            <th style={{ padding: '8px' }}>Logo</th>
+                            <th style={{ padding: '8px' }}>Marca</th>
+                            <th style={{ padding: '8px' }}>Link</th>
+                            <th style={{ padding: '8px', textAlign: 'right' }}>Ações</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1648,10 +1732,10 @@ export default function AdminIpadPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left', backgroundColor: '#f8fafc' }}>
-                            <th style={{ padding: '8px', color: '#475569' }}>Grupo</th>
-                            <th style={{ padding: '8px', color: '#475569' }}>Patrocinador</th>
-                            <th style={{ padding: '8px', color: '#475569' }}>Integrantes</th>
-                            <th style={{ padding: '8px', color: '#475569', textAlign: 'right' }}>Ações</th>
+                            <th style={{ padding: '8px' }}>Grupo</th>
+                            <th style={{ padding: '8px' }}>Patrocinador</th>
+                            <th style={{ padding: '8px' }}>Integrantes</th>
+                            <th style={{ padding: '8px', textAlign: 'right' }}>Ações</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1762,10 +1846,10 @@ export default function AdminIpadPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left', backgroundColor: '#f8fafc' }}>
-                              <th style={{ padding: '8px', color: '#475569' }}>Nome</th>
-                              <th style={{ padding: '8px', color: '#475569' }}>Descrição</th>
-                              <th style={{ padding: '8px', color: '#475569', textAlign: 'center' }}>Ativa</th>
-                              <th style={{ padding: '8px', color: '#475569', textAlign: 'right' }}>Ações</th>
+                              <th style={{ padding: '8px' }}>Nome</th>
+                              <th style={{ padding: '8px' }}>Descrição</th>
+                              <th style={{ padding: '8px', textAlign: 'center' }}>Ativa</th>
+                              <th style={{ padding: '8px', textAlign: 'right' }}>Ações</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1900,10 +1984,10 @@ export default function AdminIpadPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left', backgroundColor: '#f8fafc' }}>
-                              <th style={{ padding: '8px', color: '#475569' }}>Etapa</th>
-                              <th style={{ padding: '8px', color: '#475569' }}>Grupo</th>
-                              <th style={{ padding: '8px', color: '#475569' }}>Patrocinador</th>
-                              <th style={{ padding: '8px', color: '#475569', textAlign: 'right' }}>Ações</th>
+                              <th style={{ padding: '8px' }}>Etapa</th>
+                              <th style={{ padding: '8px' }}>Grupo</th>
+                              <th style={{ padding: '8px' }}>Patrocinador</th>
+                              <th style={{ padding: '8px', textAlign: 'right' }}>Ações</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1943,13 +2027,13 @@ export default function AdminIpadPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left', backgroundColor: '#f8fafc' }}>
-                        <th style={{ padding: '8px', color: '#475569' }}>Pergunta / Título</th>
-                        <th style={{ padding: '8px', color: '#475569' }}>Tipo</th>
-                        <th style={{ padding: '8px', color: '#475569' }}>Vencedor / Ganhador</th>
-                        <th style={{ padding: '8px', color: '#475569', textAlign: 'right' }}>Votos Ganhador</th>
-                        <th style={{ padding: '8px', color: '#475569', textAlign: 'right' }}>Total Votos</th>
-                        <th style={{ padding: '8px', color: '#475569' }}>Data Encerramento</th>
-                        <th style={{ padding: '8px', color: '#475569', textAlign: 'right' }}>Ações</th>
+                        <th style={{ padding: '8px' }}>Pergunta / Título</th>
+                        <th style={{ padding: '8px' }}>Tipo</th>
+                        <th style={{ padding: '8px' }}>Vencedor / Ganhador</th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>Votos Ganhador</th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>Total Votos</th>
+                        <th style={{ padding: '8px' }}>Data Encerramento</th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1961,7 +2045,7 @@ export default function AdminIpadPage() {
                           <td style={{ padding: '8px', textAlign: 'right' }}>{hist.votos_ganhador.toLocaleString()}</td>
                           <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{hist.votos_totais.toLocaleString()}</td>
                           <td style={{ padding: '8px' }}>
-                            {new Date(hist.data_encerramento).toLocaleDateString('pt-BR', { dateStyle: 'short' })}
+                            {formatShortDate(hist.data_encerramento)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
                             <button 
@@ -2057,9 +2141,9 @@ export default function AdminIpadPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left', backgroundColor: '#f8fafc' }}>
-                            <th style={{ padding: '8px', color: '#475569' }}>E-mail Administrativo</th>
-                            <th style={{ padding: '8px', color: '#475569' }}>Identificador (ID)</th>
-                            <th style={{ padding: '8px', color: '#475569', textAlign: 'right' }}>Ações</th>
+                            <th style={{ padding: '8px' }}>E-mail Administrativo</th>
+                            <th style={{ padding: '8px' }}>Identificador (ID)</th>
+                            <th style={{ padding: '8px', textAlign: 'right' }}>Ações</th>
                           </tr>
                         </thead>
                         <tbody>
