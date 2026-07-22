@@ -340,15 +340,22 @@ export default function AdminIpadPage() {
     const checkHealth = async () => {
       const start = performance.now();
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
-        
-        const baseUrl = pb.baseUrl || '';
-        const response = await fetch(`${baseUrl}/api/health`, {
-          signal: controller.signal,
-          cache: 'no-store'
-        });
-        clearTimeout(timeoutId);
+        let response;
+        if (typeof AbortController !== 'undefined') {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2500);
+          const baseUrl = pb.baseUrl || '';
+          response = await fetch(`${baseUrl}/api/health`, {
+            signal: controller.signal,
+            cache: 'no-store'
+          });
+          clearTimeout(timeoutId);
+        } else {
+          const baseUrl = pb.baseUrl || '';
+          response = await fetch(`${baseUrl}/api/health`, {
+            cache: 'no-store'
+          });
+        }
         
         const end = performance.now();
         const latency = Math.round(end - start);
@@ -427,14 +434,20 @@ export default function AdminIpadPage() {
     const checkWebHealth = async () => {
       const start = performance.now();
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
-        
-        const response = await fetch('/', {
-          signal: controller.signal,
-          cache: 'no-store'
-        });
-        clearTimeout(timeoutId);
+        let response;
+        if (typeof AbortController !== 'undefined') {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2500);
+          response = await fetch('/', {
+            signal: controller.signal,
+            cache: 'no-store'
+          });
+          clearTimeout(timeoutId);
+        } else {
+          response = await fetch('/', {
+            cache: 'no-store'
+          });
+        }
         
         const end = performance.now();
         const latency = Math.round(end - start);
@@ -2349,34 +2362,35 @@ export default function AdminIpadPage() {
 
               {/* TAB CONTENT: METRICS & HEALTH (MÉTRICAS & SAÚDE) */}
               {activeSubTab === 'metrics' && (
-                <div style={{ clear: 'both', overflow: 'auto' }}>
-                  {/* Grid Layout for Metrics cards */}
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
-                    gap: '20px', 
-                    marginTop: '10px' 
-                  }}>
+                <div style={{ clear: 'both', overflow: 'auto', marginTop: '10px' }}>
+                  
+                  {/* Row 1: Health metrics */}
+                  <div style={{ clear: 'both', overflow: 'auto', marginBottom: '20px' }}>
                     
                     {/* Card 1: Saúde & Latência do Banco */}
                     <div style={{ 
+                      float: 'left',
+                      width: '31%',
+                      marginRight: '3%',
                       backgroundColor: '#1e293b', 
                       borderRadius: '12px', 
                       border: '1px solid #334155', 
-                      padding: '24px', 
+                      padding: '20px', 
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+                      boxSizing: 'border-box',
+                      minHeight: '260px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between'
                     }}>
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Saúde do Banco
                           </span>
                           <span style={{ 
-                            padding: '4px 10px', 
-                            fontSize: '11px', 
+                            padding: '3px 8px', 
+                            fontSize: '10px', 
                             fontWeight: 'bold', 
                             borderRadius: '20px', 
                             backgroundColor: pbStatus === 'online' ? 'rgba(74, 222, 128, 0.15)' : pbStatus === 'offline' ? 'rgba(248, 113, 113, 0.15)' : 'rgba(148, 163, 184, 0.15)',
@@ -2386,23 +2400,23 @@ export default function AdminIpadPage() {
                             {pbStatus.toUpperCase()}
                           </span>
                         </div>
-                        <div style={{ marginBottom: '20px' }}>
-                          <span style={{ fontSize: '36px', fontWeight: 900, color: '#ffffff' }}>
+                        <div style={{ marginBottom: '15px' }}>
+                          <span style={{ fontSize: '32px', fontWeight: 900, color: '#ffffff' }}>
                             {pbLatency !== null ? `${pbLatency}` : '--'}
                           </span>
-                          <span style={{ fontSize: '14px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>ms</span>
-                          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>Latência de resposta da API do PocketBase</p>
+                          <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '4px', fontWeight: 'bold' }}>ms</span>
+                          <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0 0' }}>Latência da API do PocketBase</p>
                         </div>
                       </div>
 
                       {/* Sparkline Line Chart */}
-                      <div style={{ marginTop: '15px', position: 'relative' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>Latência do Banco (Últimos 20 pts)</span>
-                        <div style={{ width: '100%', height: '80px', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '6px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                      <div style={{ marginTop: '10px', position: 'relative' }}>
+                        <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '6px' }}>Latência do Banco (Últimos 20 pts)</span>
+                        <div style={{ width: '100%', height: '70px', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '4px', boxSizing: 'border-box', overflow: 'hidden' }}>
                           {(() => {
-                            const width = 320;
-                            const height = 68;
-                            const padding = 6;
+                            const width = 220;
+                            const height = 62;
+                            const padding = 4;
                             const chartHeight = height - padding * 2;
                             const maxVal = Math.max(...latencyHistory, 50);
                             const minVal = Math.min(...latencyHistory, 0);
@@ -2446,25 +2460,30 @@ export default function AdminIpadPage() {
                       </div>
                     </div>
 
-                    {/* Card 2: Desempenho & Latência da Página de Votação (Next.js) */}
+                    {/* Card 2: Desempenho da Web (Next.js) */}
                     <div style={{ 
+                      float: 'left',
+                      width: '31%',
+                      marginRight: '3%',
                       backgroundColor: '#1e293b', 
                       borderRadius: '12px', 
                       border: '1px solid #334155', 
-                      padding: '24px', 
+                      padding: '20px', 
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+                      boxSizing: 'border-box',
+                      minHeight: '260px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between'
                     }}>
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Desempenho da Web
                           </span>
                           <span style={{ 
-                            padding: '4px 10px', 
-                            fontSize: '11px', 
+                            padding: '3px 8px', 
+                            fontSize: '10px', 
                             fontWeight: 'bold', 
                             borderRadius: '20px', 
                             backgroundColor: webStatus === 'online' ? 'rgba(74, 222, 128, 0.15)' : webStatus === 'offline' ? 'rgba(248, 113, 113, 0.15)' : 'rgba(148, 163, 184, 0.15)',
@@ -2474,23 +2493,23 @@ export default function AdminIpadPage() {
                             {webStatus.toUpperCase()}
                           </span>
                         </div>
-                        <div style={{ marginBottom: '20px' }}>
-                          <span style={{ fontSize: '36px', fontWeight: 900, color: '#ffffff' }}>
+                        <div style={{ marginBottom: '15px' }}>
+                          <span style={{ fontSize: '32px', fontWeight: 900, color: '#ffffff' }}>
                             {webLatency !== null ? `${webLatency}` : '--'}
                           </span>
-                          <span style={{ fontSize: '14px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>ms</span>
-                          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>Tempo de resposta do servidor Next.js</p>
+                          <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '4px', fontWeight: 'bold' }}>ms</span>
+                          <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0 0' }}>Resposta do servidor Next.js</p>
                         </div>
                       </div>
 
                       {/* Sparkline Line Chart */}
-                      <div style={{ marginTop: '15px', position: 'relative' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>Latência da Web (Últimos 20 pts)</span>
-                        <div style={{ width: '100%', height: '80px', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '6px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                      <div style={{ marginTop: '10px', position: 'relative' }}>
+                        <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>Latência da Web (Últimos 20 pts)</span>
+                        <div style={{ width: '100%', height: '70px', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '6px', boxSizing: 'border-box', overflow: 'hidden' }}>
                           {(() => {
-                            const width = 320;
-                            const height = 68;
-                            const padding = 6;
+                            const width = 220;
+                            const height = 62;
+                            const padding = 4;
                             const chartHeight = height - padding * 2;
                             const maxVal = Math.max(...webLatencyHistory, 50);
                             const minVal = Math.min(...webLatencyHistory, 0);
@@ -2534,25 +2553,29 @@ export default function AdminIpadPage() {
                       </div>
                     </div>
 
-                    {/* Card 3: Frequência de Votos & Gráfico de Atividade */}
+                    {/* Card 3: Frequência de Votos */}
                     <div style={{ 
+                      float: 'left',
+                      width: '31%',
                       backgroundColor: '#1e293b', 
                       borderRadius: '12px', 
                       border: '1px solid #334155', 
-                      padding: '24px', 
+                      padding: '20px', 
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+                      boxSizing: 'border-box',
+                      minHeight: '260px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between'
                     }}>
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Frequência de Votos
                           </span>
                           <span style={{ 
-                            padding: '4px 10px', 
-                            fontSize: '11px', 
+                            padding: '3px 8px', 
+                            fontSize: '10px', 
                             fontWeight: 'bold', 
                             borderRadius: '20px', 
                             backgroundColor: votesPerMin > 100 ? 'rgba(74, 222, 128, 0.15)' : votesPerMin > 0 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148, 163, 184, 0.15)',
@@ -2562,23 +2585,23 @@ export default function AdminIpadPage() {
                             {votesPerMin > 100 ? 'ALTA ATIVIDADE' : votesPerMin > 0 ? 'MODERADA' : 'OCIOSO'}
                           </span>
                         </div>
-                        <div style={{ marginBottom: '20px' }}>
-                          <span style={{ fontSize: '36px', fontWeight: 900, color: '#4ade80' }}>
+                        <div style={{ marginBottom: '15px' }}>
+                          <span style={{ fontSize: '32px', fontWeight: 900, color: '#4ade80' }}>
                             {votesPerMin}
                           </span>
-                          <span style={{ fontSize: '14px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>votos/min</span>
-                          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>Frequência de votos na sessão atual</p>
+                          <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '4px', fontWeight: 'bold' }}>votos/min</span>
+                          <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0 0' }}>Votos na sessão atual</p>
                         </div>
                       </div>
 
                       {/* Sparkline for Voting Activity */}
-                      <div style={{ marginTop: '15px', position: 'relative' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>Atividade de Votos (Últimos 20 pts)</span>
-                        <div style={{ width: '100%', height: '80px', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '6px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                      <div style={{ marginTop: '10px', position: 'relative' }}>
+                        <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '6px' }}>Atividade de Votos (Últimos 20 pts)</span>
+                        <div style={{ width: '100%', height: '70px', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '4px', boxSizing: 'border-box', overflow: 'hidden' }}>
                           {(() => {
-                            const width = 320;
-                            const height = 68;
-                            const padding = 6;
+                            const width = 220;
+                            const height = 62;
+                            const padding = 4;
                             const chartHeight = height - padding * 2;
                             const maxVal = Math.max(...vpmHistory, 10);
                             const minVal = Math.min(...vpmHistory, 0);
@@ -2622,43 +2645,52 @@ export default function AdminIpadPage() {
                       </div>
                     </div>
 
+                  </div>
+
+                  <div style={{ clear: 'both', height: '10px' }} />
+
+                  {/* Row 2: Clock & Volumes */}
+                  <div style={{ clear: 'both', overflow: 'auto' }}>
+                    
                     {/* Card 4: Total de Votos Registrados */}
                     <div style={{ 
+                      float: 'left',
+                      width: '48.5%',
+                      marginRight: '3%',
                       backgroundColor: '#1e293b', 
                       borderRadius: '12px', 
                       border: '1px solid #334155', 
-                      padding: '24px', 
+                      padding: '20px', 
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+                      boxSizing: 'border-box',
+                      minHeight: '160px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between'
                     }}>
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Volume de Votos
                           </span>
-                          <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 'bold' }}>
+                          <span style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 'bold' }}>
                             {config?.tipo.toUpperCase() || 'INDIVIDUAL'}
                           </span>
                         </div>
-                        <div style={{ marginBottom: '20px' }}>
-                          <span style={{ fontSize: '36px', fontWeight: 900, color: '#ffffff' }}>
+                        <div style={{ marginBottom: '10px' }}>
+                          <span style={{ fontSize: '32px', fontWeight: 900, color: '#ffffff' }}>
                             {activeTotalVotes.toLocaleString('pt-BR')}
                           </span>
-                          <span style={{ fontSize: '14px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>total</span>
-                          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>Votos válidos na rodada corrente</p>
+                          <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '4px', fontWeight: 'bold' }}>total</span>
+                          <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0 0' }}>Votos válidos na rodada corrente</p>
                         </div>
                       </div>
-                      <div style={{ borderTop: '1px solid #334155', paddingTop: '15px', marginTop: '15px' }}>
-                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>
-                          Divisão por Categoria
-                        </span>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#cbd5e1' }}>
+                      <div style={{ borderTop: '1px solid #334155', paddingTop: '10px', marginTop: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1' }}>
                           <span>Votos em Influenciadores:</span>
                           <span style={{ fontWeight: 'bold' }}>{totalVotesCandidates.toLocaleString('pt-BR')}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#cbd5e1', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1', marginTop: '3px' }}>
                           <span>Votos em Grupos:</span>
                           <span style={{ fontWeight: 'bold' }}>{totalVotesGroups.toLocaleString('pt-BR')}</span>
                         </div>
@@ -2667,50 +2699,55 @@ export default function AdminIpadPage() {
 
                     {/* Card 5: Relógio de Evento */}
                     <div style={{ 
+                      float: 'left',
+                      width: '48.5%',
                       backgroundColor: '#1e293b', 
                       borderRadius: '12px', 
                       border: '1px solid #334155', 
-                      padding: '24px', 
+                      padding: '20px', 
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+                      boxSizing: 'border-box',
+                      minHeight: '160px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between'
                     }}>
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Relógio do Evento
                           </span>
-                          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#38bdf8', boxShadow: '0 0 8px #38bdf8' }} />
+                          <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#38bdf8', boxShadow: '0 0 6px #38bdf8' }} />
                         </div>
                         <div style={{ 
                           textAlign: 'center', 
-                          padding: '10px 0',
+                          padding: '12px 0',
                           backgroundColor: '#0f172a',
                           borderRadius: '8px',
                           border: '1px solid #1e293b',
-                          margin: '10px 0'
+                          margin: '5px 0'
                         }}>
                           <span style={{ 
-                            fontSize: '40px', 
+                            fontSize: '36px', 
                             fontWeight: 900, 
                             color: '#38bdf8', 
                             fontFamily: 'Courier New, Courier, monospace',
-                            textShadow: '0 0 10px rgba(56, 189, 248, 0.4)',
+                            textShadow: '0 0 8px rgba(56, 189, 248, 0.4)',
                             letterSpacing: '2px'
                           }}>
                             {currentTime || '00:00:00'}
                           </span>
                         </div>
                       </div>
-                      <div style={{ borderTop: '1px solid #334155', paddingTop: '15px', marginTop: '15px' }}>
-                        <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, textAlign: 'center' }}>
+                      <div style={{ borderTop: '1px solid #334155', paddingTop: '10px', marginTop: '10px' }}>
+                        <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, textAlign: 'center' }}>
                           Sincronizado com o horário do iPad
                         </p>
                       </div>
                     </div>
 
                   </div>
+
                 </div>
               )}
 
