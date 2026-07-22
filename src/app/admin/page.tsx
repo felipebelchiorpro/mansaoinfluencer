@@ -976,16 +976,16 @@ export default function AdminPage() {
   };
 
   // Image Getters inside Admin Dashboard (with file upload fallback)
-  const getCandFoto = (cand: Candidato) => {
+  const getCandFoto = (cand: Candidato, thumb?: string) => {
     if (cand.foto_file) {
-      return pb.files.getUrl(cand, cand.foto_file);
+      return pb.files.getUrl(cand, cand.foto_file, thumb ? { thumb } : undefined);
     }
     return cand.foto_url;
   };
 
-  const getSponLogo = (spon: Patrocinador) => {
+  const getSponLogo = (spon: Patrocinador, thumb?: string) => {
     if (spon.logo_file) {
-      return pb.files.getUrl(spon, spon.logo_file);
+      return pb.files.getUrl(spon, spon.logo_file, thumb ? { thumb } : undefined);
     }
     return spon.logo_url;
   };
@@ -1103,7 +1103,7 @@ export default function AdminPage() {
       <header className="md:hidden bg-white border-b border-slate-200/80 px-5 py-4 flex items-center justify-between z-30 sticky top-0">
         <div className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Mansão Logo" className="h-7 w-auto object-contain" />
+          <img src="/logo.png" alt="Mansão Logo" width={28} height={28} className="h-7 w-auto object-contain" />
           <span className="font-extrabold text-xs text-slate-800 uppercase tracking-wider">
             Mansão Admin
           </span>
@@ -1125,7 +1125,7 @@ export default function AdminPage() {
         {/* Sidebar Brand Logo */}
         <div className="p-5 border-b border-slate-100 flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Mansão Logo" className="h-9 w-auto object-contain shrink-0" />
+          <img src="/logo.png" alt="Mansão Logo" width={36} height={36} className="h-9 w-auto object-contain shrink-0" />
           <div className="flex flex-col">
             <h2 className="text-xs font-black text-slate-900 tracking-tight leading-none uppercase">
               Mansão Admin
@@ -1373,8 +1373,10 @@ export default function AdminPage() {
                               </div>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
-                                src={getCandFoto(candidate)}
+                                src={getCandFoto(candidate, '100x100')}
                                 alt={candidate.nome}
+                                width={32}
+                                height={32}
                                 className={`w-8 h-8 rounded-full object-cover border border-slate-200 ${candidate.eliminado ? 'grayscale' : ''}`}
                               />
                               <div>
@@ -1505,8 +1507,10 @@ export default function AdminPage() {
                           <div className="flex items-center gap-2.5 min-w-0">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              src={getCandFoto(cand)}
+                              src={getCandFoto(cand, '100x100')}
                               alt={cand.nome}
+                              width={36}
+                              height={36}
                               className={`w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0 ${isEliminated ? 'grayscale' : ''}`}
                             />
                             <div className="min-w-0">
@@ -1674,8 +1678,10 @@ export default function AdminPage() {
                     <div className="flex items-center gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={getCandFoto(cand)}
+                        src={getCandFoto(cand, '100x100')}
                         alt={cand.nome}
+                        width={48}
+                        height={48}
                         className={`w-12 h-12 rounded-full object-cover border border-slate-200 ${
                           cand.eliminado ? 'grayscale' : ''
                         }`}
@@ -1845,8 +1851,10 @@ export default function AdminPage() {
                     <div className="flex items-center gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={getSponLogo(spon)}
+                        src={getSponLogo(spon, '100x100')}
                         alt={spon.nome}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded object-contain border border-slate-200 bg-white p-1"
                       />
                       <div>

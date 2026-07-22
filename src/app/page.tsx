@@ -43,16 +43,16 @@ export default function Home() {
   const [isExpired, setIsExpired] = useState(false);
 
   // Helper functions to get files/logos/videos from PocketBase uploads with fallbacks
-  const getCandFoto = (cand: Candidato) => {
+  const getCandFoto = (cand: Candidato, thumb?: string) => {
     if (cand.foto_file) {
-      return pb.files.getUrl(cand, cand.foto_file);
+      return pb.files.getUrl(cand, cand.foto_file, thumb ? { thumb } : undefined);
     }
     return cand.foto_url;
   };
 
-  const getSponLogo = (spon: Patrocinador) => {
+  const getSponLogo = (spon: Patrocinador, thumb?: string) => {
     if (spon.logo_file) {
-      return pb.files.getUrl(spon, spon.logo_file);
+      return pb.files.getUrl(spon, spon.logo_file, thumb ? { thumb } : undefined);
     }
     return spon.logo_url;
   };
@@ -369,6 +369,8 @@ export default function Home() {
               <img 
                 src="/logo.png" 
                 alt="Mansão dos Influenciadores Logo" 
+                width={80}
+                height={80}
                 className="h-14 sm:h-20 w-auto object-contain drop-shadow-xs transition-all duration-300" 
               />
               <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight hidden min-[540px]:block">
@@ -560,8 +562,10 @@ export default function Home() {
                                       <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-slate-200 group-hover/member:border-blue-500 transition-all duration-200 scale-100 group-hover/member:scale-105 shadow-xs">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
-                                          src={getCandFoto(member)}
+                                          src={getCandFoto(member, '100x100')}
                                           alt={member.nome}
+                                          width={48}
+                                          height={48}
                                           className="w-full h-full object-cover"
                                         />
                                       </div>
@@ -647,8 +651,10 @@ export default function Home() {
                             <div className="relative aspect-square w-full bg-slate-100 overflow-hidden">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
-                                src={getCandFoto(candidate)}
+                                src={getCandFoto(candidate, '400x400')}
                                 alt={candidate.nome}
+                                width={400}
+                                height={400}
                                 className={`w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out ${
                                   isGray ? 'grayscale contrast-[1.05]' : ''
                                 }`}
@@ -773,8 +779,10 @@ export default function Home() {
                         <div className="relative aspect-square w-full bg-slate-100 overflow-hidden">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={getCandFoto(candidate)}
+                            src={getCandFoto(candidate, '400x400')}
                             alt={candidate.nome}
+                            width={400}
+                            height={400}
                             className={`w-full h-full object-cover object-center ${
                               isEliminated ? 'grayscale' : ''
                             }`}
@@ -852,8 +860,10 @@ export default function Home() {
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={getSponLogo(sponsor)}
+                        src={getSponLogo(sponsor, '200x0')}
                         alt={sponsor.nome}
+                        width={150}
+                        height={56}
                         className="h-10 sm:h-14 grayscale group-hover:grayscale-0 transition-all duration-300 rounded object-contain bg-white"
                       />
                       <span className="font-bold text-sm text-slate-500 sm:text-base group-hover:text-slate-900 transition-colors">
@@ -880,8 +890,10 @@ export default function Home() {
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={getSponLogo(sponsor)}
+                        src={getSponLogo(sponsor, '200x0')}
                         alt={sponsor.nome}
+                        width={150}
+                        height={56}
                         className="h-10 sm:h-14 grayscale group-hover:grayscale-0 transition-all duration-300 rounded object-contain bg-white"
                       />
                       <span className="font-bold text-sm text-slate-500 sm:text-base group-hover:text-slate-900 transition-colors">
