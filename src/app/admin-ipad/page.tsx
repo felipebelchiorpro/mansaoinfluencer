@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { pb, Candidato, VotacaoConfig, Patrocinador, Grupo, HistoricoVotacao, Etapa, GrupoVideo } from '@/lib/pocketbase';
 
-type AdminTab = 'dashboard' | 'candidatos' | 'patrocinadores' | 'grupos' | 'etapas' | 'historico' | 'equipe';
+type AdminTab = 'dashboard' | 'candidatos' | 'patrocinadores' | 'grupos' | 'etapas' | 'historico' | 'equipe' | 'metrics';
 
 export default function AdminIpadPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -24,6 +24,22 @@ export default function AdminIpadPage() {
   const [groups, setGroups] = useState<Grupo[]>([]);
   const [historyList, setHistoryList] = useState<HistoricoVotacao[]>([]);
   const [config, setConfig] = useState<VotacaoConfig | null>(null);
+
+  // Calculations
+  const activeCandidates = config?.tipo === 'repescagem'
+    ? candidates.filter(c => c.ativo === true)
+    : candidates.filter(c => c.ativo === true && !c.eliminado);
+  const totalVotesCandidates = activeCandidates.reduce((sum, c) => sum + c.votos_count, 0);
+  const totalVotesGroups = groups.reduce((sum, g) => sum + g.votos_count, 0);
+  const activeTotalVotes = config?.tipo === 'grupo' ? totalVotesGroups : totalVotesCandidates;
+
+  // Metrics & Database Health State
+  const [pbStatus, setPbStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+  const [pbLatency, setPbLatency] = useState<number | null>(null);
+  const [latencyHistory, setLatencyHistory] = useState<number[]>(Array(20).fill(0));
+  const [currentTime, setCurrentTime] = useState('');
+  const [votesHistory, setVotesHistory] = useState<{ timestamp: number; votes: number }[]>([]);
+  const [votesPerMin, setVotesPerMin] = useState<number>(0);
   
   // Stages & Stage Videos Data
   const [stages, setStages] = useState<Etapa[]>([]);
@@ -312,6 +328,93 @@ export default function AdminIpadPage() {
       pb.collection('votacoes_config').unsubscribe('*');
     };
   }, [isAuthenticated]);
+
+  // 1. Health monitoring for PocketBase
+  useEffect(() => {
+    if (!isAuthenticated || activeSubTab !== 'metrics') return;
+
+    const checkHealth = async () => {
+      const start = performance.now();
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        
+        const baseUrl = pb.baseUrl || '';
+        const response = await fetch(`${baseUrl}/api/health`, {
+          signal: controller.signal,
+          cache: 'no-store'
+        });
+        clearTimeout(timeoutId);
+        
+        const end = performance.now();
+        const latency = Math.round(end - start);
+        
+        if (response.ok) {
+          setPbStatus('online');
+          setPbLatency(latency);
+          setLatencyHistory((prev) => {
+            const next = [...prev.slice(1), latency];
+            return next;
+          });
+        } else {
+          setPbStatus('offline');
+          setPbLatency(null);
+          setLatencyHistory((prev) => [...prev.slice(1), 0]);
+        }
+      } catch (err) {
+        setPbStatus('offline');
+        setPbLatency(null);
+        setLatencyHistory((prev) => [...prev.slice(1), 0]);
+      }
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 3000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, activeSubTab]);
+
+  // 2. Real-time Clock (HH:MM:SS)
+  useEffect(() => {
+    if (!isAuthenticated || activeSubTab !== 'metrics') return;
+
+    const updateClock = () => {
+      const now = new Date();
+      const pad = (n: number) => (n < 10 ? '0' + n : n);
+      setCurrentTime(`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`);
+    };
+    
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, activeSubTab]);
+
+  // 3. Request/Vote rate tracking (Votes Per Minute) over a 60s sliding window
+  useEffect(() => {
+    if (!isAuthenticated || activeSubTab !== 'metrics') return;
+
+    const now = Date.now();
+    setVotesHistory((prev) => {
+      if (prev.length > 0 && activeTotalVotes < prev[prev.length - 1].votes) {
+        return [{ timestamp: now, votes: activeTotalVotes }];
+      }
+
+      const next = [...prev, { timestamp: now, votes: activeTotalVotes }];
+      const filtered = next.filter((item) => now - item.timestamp <= 60000);
+
+      if (filtered.length >= 2) {
+        const oldest = filtered[0];
+        const newest = filtered[filtered.length - 1];
+        const votesDiff = newest.votes - oldest.votes;
+        const timeDiffSec = (newest.timestamp - oldest.timestamp) / 1000;
+        const rate = timeDiffSec > 0 ? (votesDiff / timeDiffSec) * 60 : 0;
+        setVotesPerMin(Math.round(rate));
+      } else {
+        setVotesPerMin(0);
+      }
+
+      return filtered;
+    });
+  }, [isAuthenticated, activeSubTab, activeTotalVotes]);
 
   // Handle Login
   const handleLogin = async (e: React.FormEvent) => {
@@ -987,13 +1090,7 @@ export default function AdminIpadPage() {
     setAdminPassword('');
   };
 
-  // Calculations
-  const activeCandidates = config?.tipo === 'repescagem'
-    ? candidates.filter(c => c.ativo === true)
-    : candidates.filter(c => c.ativo === true && !c.eliminado);
-  const totalVotesCandidates = activeCandidates.reduce((sum, c) => sum + c.votos_count, 0);
-  const totalVotesGroups = groups.reduce((sum, g) => sum + g.votos_count, 0);
-  const activeTotalVotes = config?.tipo === 'grupo' ? totalVotesGroups : totalVotesCandidates;
+  // Calculations (moved to the top of the component to be accessible by hooks)
 
   // Render Login Screen if not authenticated
   if (!isAuthenticated) {
@@ -1110,6 +1207,7 @@ export default function AdminIpadPage() {
                     { id: 'etapas', label: 'Etapas & Vídeos', emoji: '🎬' },
                     { id: 'historico', label: 'Histórico', emoji: '📜' },
                     { id: 'equipe', label: 'Equipe Admin', emoji: '👤' },
+                    { id: 'metrics', label: 'Métricas & Saúde', emoji: '⚡' },
                   ].map((tab) => {
                     const isActive = activeSubTab === tab.id;
                     return (
@@ -1166,14 +1264,34 @@ export default function AdminIpadPage() {
             </td>
 
             {/* Main Content Column */}
-            <td style={{ verticalAlign: 'top', padding: '20px', backgroundColor: '#f8fafc' }}>
+            <td style={{ 
+              verticalAlign: 'top', 
+              padding: '20px', 
+              backgroundColor: activeSubTab === 'metrics' ? '#0f172a' : '#f8fafc',
+              transition: 'background-color 0.3s ease'
+            }}>
               
               {/* Header Info */}
-              <div style={{ marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  Controle em Tempo Real
+              <div style={{ 
+                marginBottom: '20px', 
+                paddingBottom: '12px', 
+                borderBottom: `1px solid ${activeSubTab === 'metrics' ? '#1e293b' : '#e2e8f0'}` 
+              }}>
+                <span style={{ 
+                  fontSize: '11px', 
+                  fontWeight: 'bold', 
+                  color: activeSubTab === 'metrics' ? '#38bdf8' : '#3b82f6', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px' 
+                }}>
+                  {activeSubTab === 'metrics' ? 'Monitoramento em Tempo Real' : 'Controle em Tempo Real'}
                 </span>
-                <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0' }}>
+                <h1 style={{ 
+                  fontSize: '22px', 
+                  fontWeight: 900, 
+                  color: activeSubTab === 'metrics' ? '#ffffff' : '#0f172a', 
+                  margin: '4px 0 0 0' 
+                }}>
                   {activeSubTab === 'dashboard' && 'Painel de Controle Geral'}
                   {activeSubTab === 'candidatos' && 'Gerenciamento de Participantes'}
                   {activeSubTab === 'patrocinadores' && 'Gerenciamento de Patrocinadores'}
@@ -1181,6 +1299,7 @@ export default function AdminIpadPage() {
                   {activeSubTab === 'etapas' && 'Gerenciamento de Etapas & Vídeos'}
                   {activeSubTab === 'historico' && 'Histórico de Votações'}
                   {activeSubTab === 'equipe' && 'Equipe de Administradores'}
+                  {activeSubTab === 'metrics' && 'Métricas & Saúde do Banco'}
                 </h1>
               </div>
 
@@ -2164,6 +2283,248 @@ export default function AdminIpadPage() {
                         </tbody>
                       </table>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB CONTENT: METRICS & HEALTH (MÉTRICAS & SAÚDE) */}
+              {activeSubTab === 'metrics' && (
+                <div style={{ clear: 'both', overflow: 'auto' }}>
+                  {/* Grid Layout for Metrics cards */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+                    gap: '20px', 
+                    marginTop: '10px' 
+                  }}>
+                    
+                    {/* Card 1: Saúde & Latência do Banco */}
+                    <div style={{ 
+                      backgroundColor: '#1e293b', 
+                      borderRadius: '12px', 
+                      border: '1px solid #334155', 
+                      padding: '24px', 
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Saúde do Banco
+                          </span>
+                          <span style={{ 
+                            padding: '4px 10px', 
+                            fontSize: '11px', 
+                            fontWeight: 'bold', 
+                            borderRadius: '20px', 
+                            backgroundColor: pbStatus === 'online' ? 'rgba(74, 222, 128, 0.15)' : pbStatus === 'offline' ? 'rgba(248, 113, 113, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                            color: pbStatus === 'online' ? '#4ade80' : pbStatus === 'offline' ? '#f87171' : '#94a3b8',
+                            border: `1px solid ${pbStatus === 'online' ? 'rgba(74, 222, 128, 0.3)' : pbStatus === 'offline' ? 'rgba(248, 113, 113, 0.3)' : 'rgba(148, 163, 184, 0.3)'}`
+                          }}>
+                            {pbStatus.toUpperCase()}
+                          </span>
+                        </div>
+                        <div style={{ marginBottom: '20px' }}>
+                          <span style={{ fontSize: '36px', fontWeight: 900, color: '#ffffff' }}>
+                            {pbLatency !== null ? `${pbLatency}` : '--'}
+                          </span>
+                          <span style={{ fontSize: '14px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>ms</span>
+                          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>Latência de resposta da API do PocketBase</p>
+                        </div>
+                      </div>
+
+                      {/* Sparkline Line Chart */}
+                      <div style={{ marginTop: '15px', position: 'relative' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>Histórico (Últimos 20 pontos)</span>
+                        <div style={{ width: '100%', height: '80px', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '6px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                          {(() => {
+                            const width = 320;
+                            const height = 68;
+                            const padding = 6;
+                            const chartHeight = height - padding * 2;
+                            const maxVal = Math.max(...latencyHistory, 50);
+                            const minVal = Math.min(...latencyHistory, 0);
+                            const range = maxVal - minVal;
+                            
+                            const points = latencyHistory.map((val, i) => {
+                              const x = (i / 19) * width;
+                              const y = height - padding - ((val - minVal) / (range || 1)) * chartHeight;
+                              return { x, y };
+                            });
+
+                            const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                            const fillD = `${d} L ${width} ${height} L 0 ${height} Z`;
+
+                            return (
+                              <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+                                <defs>
+                                  <linearGradient id="latencyGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.4" />
+                                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
+                                  </linearGradient>
+                                </defs>
+                                <path 
+                                  d={fillD} 
+                                  fill="url(#latencyGrad)" 
+                                  style={{ transition: 'd 0.3s ease-in-out' }}
+                                />
+                                <path 
+                                  d={d} 
+                                  fill="none" 
+                                  stroke="#38bdf8" 
+                                  strokeWidth="2" 
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  style={{ transition: 'd 0.3s ease-in-out' }}
+                                />
+                              </svg>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 2: Frequência de Votos */}
+                    <div style={{ 
+                      backgroundColor: '#1e293b', 
+                      borderRadius: '12px', 
+                      border: '1px solid #334155', 
+                      padding: '24px', 
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Frequência de Votos
+                          </span>
+                          <span style={{ 
+                            padding: '4px 10px', 
+                            fontSize: '11px', 
+                            fontWeight: 'bold', 
+                            borderRadius: '20px', 
+                            backgroundColor: votesPerMin > 100 ? 'rgba(74, 222, 128, 0.15)' : votesPerMin > 0 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                            color: votesPerMin > 100 ? '#4ade80' : votesPerMin > 0 ? '#38bdf8' : '#94a3b8',
+                            border: `1px solid ${votesPerMin > 100 ? 'rgba(74, 222, 128, 0.3)' : votesPerMin > 0 ? 'rgba(56, 189, 248, 0.3)' : 'rgba(148, 163, 184, 0.3)'}`
+                          }}>
+                            {votesPerMin > 100 ? 'ALTA ATIVIDADE' : votesPerMin > 0 ? 'MODERADA' : 'OCIOSO'}
+                          </span>
+                        </div>
+                        <div style={{ marginBottom: '20px' }}>
+                          <span style={{ fontSize: '36px', fontWeight: 900, color: '#4ade80' }}>
+                            {votesPerMin}
+                          </span>
+                          <span style={{ fontSize: '14px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>votos/min</span>
+                          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>Taxa média calculada nos últimos 60 segundos</p>
+                        </div>
+                      </div>
+                      <div style={{ borderTop: '1px solid #334155', paddingTop: '15px', marginTop: '15px' }}>
+                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>
+                          Informações Adicionais
+                        </span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#cbd5e1' }}>
+                          <span>Amostras na sessão:</span>
+                          <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>{votesHistory.length}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#cbd5e1', marginTop: '4px' }}>
+                          <span>Intervalo de cálculo:</span>
+                          <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>60 segundos</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Total de Votos Registrados */}
+                    <div style={{ 
+                      backgroundColor: '#1e293b', 
+                      borderRadius: '12px', 
+                      border: '1px solid #334155', 
+                      padding: '24px', 
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Volume de Votos
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 'bold' }}>
+                            {config?.tipo.toUpperCase() || 'INDIVIDUAL'}
+                          </span>
+                        </div>
+                        <div style={{ marginBottom: '20px' }}>
+                          <span style={{ fontSize: '36px', fontWeight: 900, color: '#ffffff' }}>
+                            {activeTotalVotes.toLocaleString('pt-BR')}
+                          </span>
+                          <span style={{ fontSize: '14px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>total</span>
+                          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>Votos válidos na rodada corrente</p>
+                        </div>
+                      </div>
+                      <div style={{ borderTop: '1px solid #334155', paddingTop: '15px', marginTop: '15px' }}>
+                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>
+                          Divisão por Categoria
+                        </span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#cbd5e1' }}>
+                          <span>Votos em Influenciadores:</span>
+                          <span style={{ fontWeight: 'bold' }}>{totalVotesCandidates.toLocaleString('pt-BR')}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#cbd5e1', marginTop: '4px' }}>
+                          <span>Votos em Grupos:</span>
+                          <span style={{ fontWeight: 'bold' }}>{totalVotesGroups.toLocaleString('pt-BR')}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 4: Relógio de Evento */}
+                    <div style={{ 
+                      backgroundColor: '#1e293b', 
+                      borderRadius: '12px', 
+                      border: '1px solid #334155', 
+                      padding: '24px', 
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Relógio do Evento
+                          </span>
+                          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#38bdf8', boxShadow: '0 0 8px #38bdf8' }} />
+                        </div>
+                        <div style={{ 
+                          textAlign: 'center', 
+                          padding: '10px 0',
+                          backgroundColor: '#0f172a',
+                          borderRadius: '8px',
+                          border: '1px solid #1e293b',
+                          margin: '10px 0'
+                        }}>
+                          <span style={{ 
+                            fontSize: '40px', 
+                            fontWeight: 900, 
+                            color: '#38bdf8', 
+                            fontFamily: 'Courier New, Courier, monospace',
+                            textShadow: '0 0 10px rgba(56, 189, 248, 0.4)',
+                            letterSpacing: '2px'
+                          }}>
+                            {currentTime || '00:00:00'}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ borderTop: '1px solid #334155', paddingTop: '15px', marginTop: '15px' }}>
+                        <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, textAlign: 'center' }}>
+                          Sincronizado com o horário do iPad
+                        </p>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               )}
