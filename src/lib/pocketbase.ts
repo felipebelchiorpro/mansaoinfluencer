@@ -89,7 +89,7 @@ export interface GrupoVideo {
   };
 }
 
-const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'http://169.58.35.227';
+const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'https://api.vortexsync.pro';
 const pb = new PocketBase(pocketbaseUrl);
 
 // Disable auto cancellation to prevent concurrent request issues in Next.js

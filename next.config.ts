@@ -10,8 +10,13 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
       },
       {
+        protocol: "https",
+        hostname: "api.vortexsync.pro",
+      },
+      {
         protocol: "http",
-        hostname: "169.58.35.227",
+        hostname: "127.0.0.1",
+        port: "8090",
       },
     ],
   },

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const PocketBase = require('pocketbase/cjs');
 
-const PB_URL = 'http://169.58.35.227';
+const PB_URL = process.env.POCKETBASE_URL || 'https://api.vortexsync.pro';
 
 async function seed() {
   console.log('Seeding PocketBase using JS SDK...');
