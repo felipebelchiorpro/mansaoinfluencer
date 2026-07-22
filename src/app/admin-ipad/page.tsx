@@ -40,6 +40,10 @@ export default function AdminIpadPage() {
   const [currentTime, setCurrentTime] = useState('');
   const [votesHistory, setVotesHistory] = useState<{ timestamp: number; votes: number }[]>([]);
   const [votesPerMin, setVotesPerMin] = useState<number>(0);
+  const [webStatus, setWebStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+  const [webLatency, setWebLatency] = useState<number | null>(null);
+  const [webLatencyHistory, setWebLatencyHistory] = useState<number[]>(Array(20).fill(0));
+  const [vpmHistory, setVpmHistory] = useState<number[]>(Array(20).fill(0));
   
   // Stages & Stage Videos Data
   const [stages, setStages] = useState<Etapa[]>([]);
@@ -415,6 +419,62 @@ export default function AdminIpadPage() {
       return filtered;
     });
   }, [isAuthenticated, activeSubTab, activeTotalVotes]);
+
+  // 4. Web Server Response Latency Monitoring (Main voting page '/')
+  useEffect(() => {
+    if (!isAuthenticated || activeSubTab !== 'metrics') return;
+
+    const checkWebHealth = async () => {
+      const start = performance.now();
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        
+        const response = await fetch('/', {
+          signal: controller.signal,
+          cache: 'no-store'
+        });
+        clearTimeout(timeoutId);
+        
+        const end = performance.now();
+        const latency = Math.round(end - start);
+        
+        if (response.ok || response.status === 405 || response.status === 404 || response.status === 200) {
+          setWebStatus('online');
+          setWebLatency(latency);
+          setWebLatencyHistory((prev) => {
+            const next = [...prev.slice(1), latency];
+            return next;
+          });
+        } else {
+          setWebStatus('offline');
+          setWebLatency(null);
+          setWebLatencyHistory((prev) => [...prev.slice(1), 0]);
+        }
+      } catch (err) {
+        setWebStatus('offline');
+        setWebLatency(null);
+        setWebLatencyHistory((prev) => [...prev.slice(1), 0]);
+      }
+    };
+
+    checkWebHealth();
+    const interval = setInterval(checkWebHealth, 3000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, activeSubTab]);
+
+  // 5. VPM (Votes Per Minute) History update (ticks every 3s)
+  useEffect(() => {
+    if (!isAuthenticated || activeSubTab !== 'metrics') return;
+
+    const interval = setInterval(() => {
+      setVpmHistory((prev) => {
+        const next = [...prev.slice(1), votesPerMin];
+        return next;
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, activeSubTab, votesPerMin]);
 
   // Handle Login
   const handleLogin = async (e: React.FormEvent) => {
@@ -2337,7 +2397,7 @@ export default function AdminIpadPage() {
 
                       {/* Sparkline Line Chart */}
                       <div style={{ marginTop: '15px', position: 'relative' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>Histórico (Últimos 20 pontos)</span>
+                        <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>Latência do Banco (Últimos 20 pts)</span>
                         <div style={{ width: '100%', height: '80px', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '6px', boxSizing: 'border-box', overflow: 'hidden' }}>
                           {(() => {
                             const width = 320;
@@ -2386,7 +2446,95 @@ export default function AdminIpadPage() {
                       </div>
                     </div>
 
-                    {/* Card 2: Frequência de Votos */}
+                    {/* Card 2: Desempenho & Latência da Página de Votação (Next.js) */}
+                    <div style={{ 
+                      backgroundColor: '#1e293b', 
+                      borderRadius: '12px', 
+                      border: '1px solid #334155', 
+                      padding: '24px', 
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Desempenho da Web
+                          </span>
+                          <span style={{ 
+                            padding: '4px 10px', 
+                            fontSize: '11px', 
+                            fontWeight: 'bold', 
+                            borderRadius: '20px', 
+                            backgroundColor: webStatus === 'online' ? 'rgba(74, 222, 128, 0.15)' : webStatus === 'offline' ? 'rgba(248, 113, 113, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                            color: webStatus === 'online' ? '#4ade80' : webStatus === 'offline' ? '#f87171' : '#94a3b8',
+                            border: `1px solid ${webStatus === 'online' ? 'rgba(74, 222, 128, 0.3)' : webStatus === 'offline' ? 'rgba(248, 113, 113, 0.3)' : 'rgba(148, 163, 184, 0.3)'}`
+                          }}>
+                            {webStatus.toUpperCase()}
+                          </span>
+                        </div>
+                        <div style={{ marginBottom: '20px' }}>
+                          <span style={{ fontSize: '36px', fontWeight: 900, color: '#ffffff' }}>
+                            {webLatency !== null ? `${webLatency}` : '--'}
+                          </span>
+                          <span style={{ fontSize: '14px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>ms</span>
+                          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>Tempo de resposta do servidor Next.js</p>
+                        </div>
+                      </div>
+
+                      {/* Sparkline Line Chart */}
+                      <div style={{ marginTop: '15px', position: 'relative' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>Latência da Web (Últimos 20 pts)</span>
+                        <div style={{ width: '100%', height: '80px', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '6px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                          {(() => {
+                            const width = 320;
+                            const height = 68;
+                            const padding = 6;
+                            const chartHeight = height - padding * 2;
+                            const maxVal = Math.max(...webLatencyHistory, 50);
+                            const minVal = Math.min(...webLatencyHistory, 0);
+                            const range = maxVal - minVal;
+                            
+                            const points = webLatencyHistory.map((val, i) => {
+                              const x = (i / 19) * width;
+                              const y = height - padding - ((val - minVal) / (range || 1)) * chartHeight;
+                              return { x, y };
+                            });
+
+                            const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                            const fillD = `${d} L ${width} ${height} L 0 ${height} Z`;
+
+                            return (
+                              <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+                                <defs>
+                                  <linearGradient id="webGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#c084fc" stopOpacity="0.4" />
+                                    <stop offset="100%" stopColor="#c084fc" stopOpacity="0.0" />
+                                  </linearGradient>
+                                </defs>
+                                <path 
+                                  d={fillD} 
+                                  fill="url(#webGrad)" 
+                                  style={{ transition: 'd 0.3s ease-in-out' }}
+                                />
+                                <path 
+                                  d={d} 
+                                  fill="none" 
+                                  stroke="#c084fc" 
+                                  strokeWidth="2" 
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  style={{ transition: 'd 0.3s ease-in-out' }}
+                                />
+                              </svg>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Frequência de Votos & Gráfico de Atividade */}
                     <div style={{ 
                       backgroundColor: '#1e293b', 
                       borderRadius: '12px', 
@@ -2419,25 +2567,62 @@ export default function AdminIpadPage() {
                             {votesPerMin}
                           </span>
                           <span style={{ fontSize: '14px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>votos/min</span>
-                          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>Taxa média calculada nos últimos 60 segundos</p>
+                          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>Frequência de votos na sessão atual</p>
                         </div>
                       </div>
-                      <div style={{ borderTop: '1px solid #334155', paddingTop: '15px', marginTop: '15px' }}>
-                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>
-                          Informações Adicionais
-                        </span>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#cbd5e1' }}>
-                          <span>Amostras na sessão:</span>
-                          <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>{votesHistory.length}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#cbd5e1', marginTop: '4px' }}>
-                          <span>Intervalo de cálculo:</span>
-                          <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>60 segundos</span>
+
+                      {/* Sparkline for Voting Activity */}
+                      <div style={{ marginTop: '15px', position: 'relative' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>Atividade de Votos (Últimos 20 pts)</span>
+                        <div style={{ width: '100%', height: '80px', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '6px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                          {(() => {
+                            const width = 320;
+                            const height = 68;
+                            const padding = 6;
+                            const chartHeight = height - padding * 2;
+                            const maxVal = Math.max(...vpmHistory, 10);
+                            const minVal = Math.min(...vpmHistory, 0);
+                            const range = maxVal - minVal;
+                            
+                            const points = vpmHistory.map((val, i) => {
+                              const x = (i / 19) * width;
+                              const y = height - padding - ((val - minVal) / (range || 1)) * chartHeight;
+                              return { x, y };
+                            });
+
+                            const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                            const fillD = `${d} L ${width} ${height} L 0 ${height} Z`;
+
+                            return (
+                              <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+                                <defs>
+                                  <linearGradient id="vpmGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#4ade80" stopOpacity="0.4" />
+                                    <stop offset="100%" stopColor="#4ade80" stopOpacity="0.0" />
+                                  </linearGradient>
+                                </defs>
+                                <path 
+                                  d={fillD} 
+                                  fill="url(#vpmGrad)" 
+                                  style={{ transition: 'd 0.3s ease-in-out' }}
+                                />
+                                <path 
+                                  d={d} 
+                                  fill="none" 
+                                  stroke="#4ade80" 
+                                  strokeWidth="2" 
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  style={{ transition: 'd 0.3s ease-in-out' }}
+                                />
+                              </svg>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
 
-                    {/* Card 3: Total de Votos Registrados */}
+                    {/* Card 4: Total de Votos Registrados */}
                     <div style={{ 
                       backgroundColor: '#1e293b', 
                       borderRadius: '12px', 
@@ -2480,7 +2665,7 @@ export default function AdminIpadPage() {
                       </div>
                     </div>
 
-                    {/* Card 4: Relógio de Evento */}
+                    {/* Card 5: Relógio de Evento */}
                     <div style={{ 
                       backgroundColor: '#1e293b', 
                       borderRadius: '12px', 
