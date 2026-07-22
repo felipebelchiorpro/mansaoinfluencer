@@ -5,6 +5,13 @@ import { pb, Candidato, VotacaoConfig, Patrocinador, Grupo, HistoricoVotacao, Et
 
 type AdminTab = 'dashboard' | 'candidatos' | 'patrocinadores' | 'grupos' | 'etapas' | 'historico' | 'equipe' | 'metrics';
 
+const safeNow = () => {
+  if (typeof window !== 'undefined' && window.performance && typeof window.performance.now === 'function') {
+    return window.performance.now();
+  }
+  return Date.now();
+};
+
 export default function AdminIpadPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
@@ -36,14 +43,14 @@ export default function AdminIpadPage() {
   // Metrics & Database Health State
   const [pbStatus, setPbStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [pbLatency, setPbLatency] = useState<number | null>(null);
-  const [latencyHistory, setLatencyHistory] = useState<number[]>(Array(20).fill(0));
+  const [latencyHistory, setLatencyHistory] = useState<number[]>([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
   const [currentTime, setCurrentTime] = useState('');
   const [votesHistory, setVotesHistory] = useState<{ timestamp: number; votes: number }[]>([]);
   const [votesPerMin, setVotesPerMin] = useState<number>(0);
   const [webStatus, setWebStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [webLatency, setWebLatency] = useState<number | null>(null);
-  const [webLatencyHistory, setWebLatencyHistory] = useState<number[]>(Array(20).fill(0));
-  const [vpmHistory, setVpmHistory] = useState<number[]>(Array(20).fill(0));
+  const [webLatencyHistory, setWebLatencyHistory] = useState<number[]>([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+  const [vpmHistory, setVpmHistory] = useState<number[]>([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
   
   // Stages & Stage Videos Data
   const [stages, setStages] = useState<Etapa[]>([]);
@@ -338,7 +345,7 @@ export default function AdminIpadPage() {
     if (!isAuthenticated || activeSubTab !== 'metrics') return;
 
     const checkHealth = async () => {
-      const start = performance.now();
+      const start = safeNow();
       try {
         let response;
         if (typeof AbortController !== 'undefined') {
@@ -357,7 +364,7 @@ export default function AdminIpadPage() {
           });
         }
         
-        const end = performance.now();
+        const end = safeNow();
         const latency = Math.round(end - start);
         
         if (response.ok) {
@@ -432,7 +439,7 @@ export default function AdminIpadPage() {
     if (!isAuthenticated || activeSubTab !== 'metrics') return;
 
     const checkWebHealth = async () => {
-      const start = performance.now();
+      const start = safeNow();
       try {
         let response;
         if (typeof AbortController !== 'undefined') {
@@ -449,7 +456,7 @@ export default function AdminIpadPage() {
           });
         }
         
-        const end = performance.now();
+        const end = safeNow();
         const latency = Math.round(end - start);
         
         if (response.ok || response.status === 405 || response.status === 404 || response.status === 200) {
