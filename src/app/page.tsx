@@ -820,20 +820,7 @@ export default function Home() {
 
       {/* Footer / Patrocinadores */}
       <footer className="bg-white border-t border-slate-200/80 py-8 px-6 mt-12 overflow-hidden">
-        <style dangerouslySetInnerHTML={{__html: `
-          @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .animate-marquee {
-            display: flex;
-            width: max-content;
-            animation: marquee 90s linear infinite;
-          }
-          .animate-marquee:hover {
-            animation-play-state: paused;
-          }
-        `}} />
+
 
         <div className="max-w-5xl mx-auto flex flex-col items-center gap-6">
           <div className="text-center w-full">
