@@ -27,10 +27,11 @@ export default function Home() {
         const activeConfig = configs.find(c => c.ativa) || configs[0] || null
         setConfig(activeConfig)
 
-        // 2. Fetch sponsor
-        if (activeConfig?.patrocinador_id) {
+        // 2. Fetch sponsor (com cast em any para evitar erro de tipo no build)
+        const sponsorId = (activeConfig as any)?.patrocinador_id || (activeConfig as any)?.patrocinador
+        if (sponsorId) {
           try {
-            const pat = await pb.collection('patrocinadores').getOne<Patrocinador>(activeConfig.patrocinador_id)
+            const pat = await pb.collection('patrocinadores').getOne<Patrocinador>(sponsorId)
             setPatrocinador(pat)
           } catch (e) {
             console.error('Erro ao carregar patrocinador:', e)
@@ -184,7 +185,6 @@ export default function Home() {
             {grupos.map((group) => {
               const members = group.expand?.membros || []
               const hasVideo = Boolean(group.video_url)
-              const sv = group.stage_votes?.find((s: any) => s.stage_id === activeStage?.id)
 
               return (
                 <div
@@ -233,7 +233,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Vote Button Section (Contagem removida do público) */}
+                  {/* Vote Button Section */}
                   <div className="mt-auto">
                     <button
                       onClick={() => handleVote(group.id, true)}
