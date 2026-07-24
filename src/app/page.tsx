@@ -13,57 +13,53 @@ export default function Home() {
   const [grupos, setGrupos] = useState<Grupo[]>([])
   const [loading, setLoading] = useState(true)
   const [votingForId, setVotingForId] = useState<string | null>(null)
-  const [votedSuccess, setVotedSuccess] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  // Fetch initial config and data
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true)
         
-        // 1. Fetch main voting config
-        const configs = await pb.collection('votacao_config').getFullList<VotacaoConfig>()
-        const activeConfig = configs.find(c => c.ativa) || configs[0] || null
-        setConfig(activeConfig)
+        // 1. Config
+        try {
+          const configs = await pb.collection('votacao_config').getFullList<VotacaoConfig>()
+          const activeConfig = configs.find(c => c.ativa) || configs[0] || null
+          setConfig(activeConfig)
 
-        // 2. Fetch sponsor (com cast em any para evitar erro de tipo no build)
-        const sponsorId = (activeConfig as any)?.patrocinador_id || (activeConfig as any)?.patrocinador
-        if (sponsorId) {
-          try {
-            const pat = await pb.collection('patrocinadores').getOne<Patrocinador>(sponsorId)
-            setPatrocinador(pat)
-          } catch (e) {
-            console.error('Erro ao carregar patrocinador:', e)
+          if ((activeConfig as any)?.patrocinador_id) {
+            try {
+              const pat = await pb.collection('patrocinadores').getOne<Patrocinador>((activeConfig as any).patrocinador_id)
+              setPatrocinador(pat)
+            } catch (e) {}
           }
+        } catch (e) {
+          console.error('Erro config:', e)
         }
 
-        // 3. Fetch active stages
-        const stagesList = await pb.collection('etapas').getFullList<Etapa>({
-          sort: 'ordem',
-          filter: 'ativa = true'
-        })
-        setEtapas(stagesList)
-        const currentActiveStage = stagesList.find(s => s.ativa) || null
-        setActiveStage(currentActiveStage)
+        // 2. Etapas
+        try {
+          const stagesList = await pb.collection('etapas').getFullList<Etapa>({ sort: 'ordem' })
+          setEtapas(stagesList)
+          const currentActiveStage = stagesList.find(s => s.ativa) || null
+          setActiveStage(currentActiveStage)
+        } catch (e) {
+          console.error('Erro etapas:', e)
+        }
 
-        // 4. Fetch candidates and groups
-        const [candsList, groupsList] = await Promise.all([
-          pb.collection('candidatos').getFullList<Candidato>({
-            filter: 'ativo = true',
-            sort: 'nome'
-          }),
-          pb.collection('grupos').getFullList<Grupo>({
-            sort: 'nome',
-            expand: 'membros'
-          })
-        ])
+        // 3. Candidatos e Grupos
+        try {
+          const [candsList, groupsList] = await Promise.all([
+            pb.collection('candidatos').getFullList<Candidato>({ filter: 'ativo = true', sort: 'nome' }),
+            pb.collection('grupos').getFullList<Grupo>({ sort: 'nome', expand: 'membros' })
+          ])
+          setCandidatos(candsList)
+          setGrupos(groupsList)
+        } catch (e) {
+          console.error('Erro grupos/candidatos:', e)
+        }
 
-        setCandidatos(candsList)
-        setGrupos(groupsList)
       } catch (err) {
-        console.error('Erro ao carregar dados:', err)
-        setErrorMessage('Não foi possível carregar as informações da votação.')
+        console.error('Erro geral:', err)
       } finally {
         setLoading(false)
       }
@@ -72,7 +68,6 @@ export default function Home() {
     loadData()
   }, [])
 
-  // Voting handler
   const handleVote = async (targetId: string, isGroup: boolean) => {
     if (votingForId) return
     setVotingForId(targetId)
@@ -90,31 +85,17 @@ export default function Home() {
       })
 
       const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Erro ao processar voto')
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Erro ao processar voto')
-      }
-
-      setVotedSuccess(targetId)
-      setTimeout(() => setVotedSuccess(null), 3000)
-
-      // Refresh data after voting
       if (isGroup) {
-        const updatedGroups = await pb.collection('grupos').getFullList<Grupo>({
-          sort: 'nome',
-          expand: 'membros'
-        })
+        const updatedGroups = await pb.collection('grupos').getFullList<Grupo>({ sort: 'nome', expand: 'membros' })
         setGrupos(updatedGroups)
       } else {
-        const updatedCands = await pb.collection('candidatos').getFullList<Candidato>({
-          filter: 'ativo = true',
-          sort: 'nome'
-        })
+        const updatedCands = await pb.collection('candidatos').getFullList<Candidato>({ filter: 'ativo = true', sort: 'nome' })
         setCandidatos(updatedCands)
       }
     } catch (err: any) {
-      console.error('Erro de votação:', err)
-      setErrorMessage(err.message || 'Ocorreu um erro ao votar. Tente novamente.')
+      setErrorMessage(err.message || 'Erro ao votar.')
     } finally {
       setVotingForId(null)
     }
@@ -132,7 +113,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-blue-100 selection:text-blue-900">
-      {/* Header Banner */}
       <header className="bg-white border-b border-slate-200 py-6 px-4 shadow-sm">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -160,7 +140,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 py-8 flex flex-col items-center">
         {errorMessage && (
           <div className="w-full mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex items-center justify-between">
@@ -169,7 +148,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Mode Selector / Section Title */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight sm:text-3xl">
             {config?.tipo === 'grupo' ? 'Grupos Participantes' : 'Participantes'}
@@ -179,7 +157,6 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Group Cards Rendering */}
         {config?.tipo === 'grupo' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
             {grupos.map((group) => {
@@ -187,10 +164,7 @@ export default function Home() {
               const hasVideo = Boolean(group.video_url)
 
               return (
-                <div
-                  key={group.id}
-                  className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
-                >
+                <div key={group.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-bold text-slate-900">{group.nome}</h3>
@@ -201,11 +175,8 @@ export default function Home() {
                       )}
                     </div>
 
-                    {/* Members Avatars */}
                     <div className="mb-6">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                        Membros do Grupo
-                      </p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Membros do Grupo</p>
                       <div className="flex flex-wrap gap-3">
                         {members.map((member) => (
                           <a
@@ -233,7 +204,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Vote Button Section */}
                   <div className="mt-auto">
                     <button
                       onClick={() => handleVote(group.id, true)}
@@ -265,13 +235,9 @@ export default function Home() {
             })}
           </div>
         ) : (
-          /* Individual Candidates Grid */
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 w-full">
             {candidatos.map((cand) => (
-              <div
-                key={cand.id}
-                className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center text-center"
-              >
+              <div key={cand.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col items-center text-center">
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-slate-200 mb-3 bg-slate-100 relative">
                   {cand.foto_url ? (
                     <Image src={cand.foto_url} alt={cand.nome} fill className="object-cover" />
@@ -282,9 +248,7 @@ export default function Home() {
                   )}
                 </div>
 
-                <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight mb-1">
-                  {cand.nome}
-                </h3>
+                <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight mb-1">{cand.nome}</h3>
 
                 {cand.instagram && (
                   <a
