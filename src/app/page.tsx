@@ -578,17 +578,7 @@ export default function Home() {
                               </div>
 
                               {/* Vote Button (Unlimited) */}
-                              <div className="mt-auto">
-                                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase mb-3 px-1">
-                                  <span>Contagem de Votos:</span>
-                                  <span className="text-blue-600">
-                                    {activeStage 
-                                      ? `${(sv?.votos_count || 0).toLocaleString()} votos nesta etapa`
-                                      : `${(group.votos_count || 0).toLocaleString()} votos acumulados`
-                                    }
-                                  </span>
-                                </div>
-                                
+                             
                                 <button
                                   onClick={() => handleVote(group.id, true)}
                                   disabled={isVotingClosed || votingForId !== null || !hasVideo}
