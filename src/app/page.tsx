@@ -247,6 +247,30 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [config]);
 
+  // Checagem visual de status com Resiliência Visual no Front-End
+  useEffect(() => {
+    async function checkVotingStatus() {
+      try {
+        const res = await fetch('/api/voting-status', {
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'closed' || data.active === false) {
+            setIsExpired(true);
+          }
+        }
+      } catch (err) {
+        // Resiliência Visual: Se falhar por oscilação de rede ou timeout, MANTÉM a UI ativa!
+        console.warn('[Status Check] Oscilação de rede ao checar status. Mantendo UI ativa para tentativa de voto:', err);
+      }
+    }
+
+    checkVotingStatus();
+    const statusInterval = setInterval(checkVotingStatus, 10000);
+    return () => clearInterval(statusInterval);
+  }, []);
+
   // Toast Helper
   const addToast = (message: string, type: 'success' | 'error') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -256,9 +280,9 @@ export default function Home() {
     }, 4000);
   };
 
-  // Vote Handler (Individual and Group)
+  // Vote Handler (Individual and Group) com Validação Soberana
   const handleVote = async (id: string, isGroup: boolean = false) => {
-    if (!config || !config.ativa || isExpired) {
+    if (isExpired) {
       addToast('A votação está encerrada no momento.', 'error');
       return;
     }
@@ -271,45 +295,79 @@ export default function Home() {
     setVotingForId(id);
 
     try {
+      // 1. Validação Soberana no Backend (/api/vote)
+      const voteResponse = await fetch('/api/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetId: id,
+          isGroup,
+          candidatoId: !isGroup ? id : undefined,
+          grupoId: isGroup ? id : undefined,
+          stageId: activeStage?.id,
+        }),
+      });
+
+      if (voteResponse.status === 403) {
+        // Se o Backend rejeitar com 403 / Votação Encerrada, atualiza a UI para encerrado
+        setIsExpired(true);
+        addToast('A votação foi oficialmente encerrada no sistema.', 'error');
+        return;
+      }
+
+      if (!voteResponse.ok) {
+        const errData = await voteResponse.json().catch(() => ({}));
+        if (errData.closed) {
+          setIsExpired(true);
+          addToast('A votação foi oficialmente encerrada no sistema.', 'error');
+          return;
+        }
+        if (voteResponse.status === 429) {
+          addToast(errData.error || `Aguarde ${cooldownRemaining || 3}s para votar novamente.`, 'error');
+          return;
+        }
+        addToast(errData.error || 'Erro ao registrar voto.', 'error');
+        return;
+      }
+
+      // Voto aceito com sucesso pela API Soberana
       if (isGroup) {
-        // 1. Group Voting: increment cumulative votes for the group
+        // Atualização visual otimista no front
         await pb.collection('grupos').update(id, {
           'votos_count+': 1
-        });
+        }).catch(() => {});
 
-        // 2. Also increment the active stage video if active stage is set
         if (activeStage) {
           const sv = stageVideos.find(v => v.grupo === id && v.etapa === activeStage.id);
           if (sv) {
             await pb.collection('grupo_videos').update(sv.id, {
               'votos_count+': 1
-            });
+            }).catch(() => {});
           }
         }
         
         addToast('Voto registrado no grupo!', 'success');
       } else {
-        // Individual Voting: increment candidate votes atomically
         await pb.collection('candidatos').update(id, {
           'votos_count+': 1
-        });
+        }).catch(() => {});
 
         addToast('Voto registrado com sucesso!', 'success');
 
-        // Apply visual cooldown of 3 seconds
         const now = Date.now();
         localStorage.setItem('last_vote_timestamp', now.toString());
         setCooldownRemaining(3);
       }
     } catch (err: any) {
       console.error(err);
-      addToast('Erro ao registrar voto no banco de dados.', 'error');
+      addToast('Erro de conexão ao enviar o voto.', 'error');
     } finally {
       setVotingForId(null);
     }
   };
 
-  const isVotingClosed = !config || !config.ativa || isExpired;
+  const isVotingClosed = (config && config.ativa === false) || isExpired;
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-blue-100 selection:text-blue-900">

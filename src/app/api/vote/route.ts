@@ -1,11 +1,25 @@
 import { NextResponse } from 'next/server';
-import { pushVoteToQueue, checkRateLimit, VoteEvent } from '@/lib/redis';
+import { pushVoteToQueue, checkRateLimit, getVotingStatus, VoteEvent } from '@/lib/redis';
 
 export async function POST(request: Request) {
   const startTime = Date.now();
 
   try {
+    // 1. Validação Soberana no Backend: Checa se a chave voting_status no Redis está "closed"
+    const currentStatus = await getVotingStatus();
+    if (currentStatus === 'closed') {
+      return NextResponse.json(
+        {
+          error: 'Votação Encerrada',
+          message: 'Nenhum voto pode ser aceito ou computado após o encerramento oficial.',
+          closed: true,
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
+
     
     // Support both new schema (targetId, isGroup, stageId) and legacy schema (candidatoId, grupoId)
     const candidatoId = body.candidatoId || (!body.isGroup ? body.targetId : undefined);

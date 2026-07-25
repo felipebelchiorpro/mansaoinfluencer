@@ -160,3 +160,43 @@ export async function checkRateLimit(
     return { allowed: true, remainingSeconds: 0 };
   }
 }
+
+const VOTING_STATUS_KEY = 'voting_status';
+let memoryVotingStatus: 'open' | 'closed' = 'open';
+
+/**
+ * Busca o status soberano da votação no Redis ('open' | 'closed')
+ */
+export async function getVotingStatus(): Promise<'open' | 'closed'> {
+  try {
+    if (upstashClient) {
+      const val = await upstashClient.get<string>(VOTING_STATUS_KEY);
+      if (val === 'closed') return 'closed';
+      if (val === 'open') return 'open';
+    } else if (ioRedisClient) {
+      const val = await ioRedisClient.get(VOTING_STATUS_KEY);
+      if (val === 'closed') return 'closed';
+      if (val === 'open') return 'open';
+    }
+  } catch (err) {
+    console.warn('[Redis] Erro ao ler voting_status do Redis:', err);
+  }
+  return memoryVotingStatus;
+}
+
+/**
+ * Define o status soberano da votação no Redis ('open' | 'closed')
+ */
+export async function setVotingStatus(status: 'open' | 'closed'): Promise<void> {
+  memoryVotingStatus = status;
+  try {
+    if (upstashClient) {
+      await upstashClient.set(VOTING_STATUS_KEY, status);
+    } else if (ioRedisClient) {
+      await ioRedisClient.set(VOTING_STATUS_KEY, status);
+    }
+  } catch (err) {
+    console.warn('[Redis] Erro ao gravar voting_status no Redis:', err);
+  }
+}
+

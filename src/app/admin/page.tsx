@@ -334,10 +334,18 @@ export default function AdminPage() {
     }
     setStatusLoading(true);
     try {
+      const newStatus = !config.ativa;
       const updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, {
-        ativa: !config.ativa
+        ativa: newStatus
       });
       setConfig(updated);
+
+      // Sincroniza o status soberano no Redis
+      await fetch('/api/voting-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus ? 'open' : 'closed' }),
+      }).catch(err => console.warn('Erro ao sincronizar Redis:', err));
     } catch (err) {
       console.error(err);
       alert('Erro ao alterar status da votação.');
@@ -470,6 +478,13 @@ export default function AdminPage() {
         detalhes: detailsBreakdown,
         data_encerramento: new Date().toISOString()
       });
+
+      // Fecha o status no Redis soberanamente
+      await fetch('/api/voting-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'closed' }),
+      }).catch(err => console.warn('Erro ao sincronizar Redis:', err));
 
       alert('Votação arquivada com sucesso no histórico!');
     } catch (err) {
@@ -1264,25 +1279,10 @@ export default function AdminPage() {
             </p>
           </div>
           
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleDownloadPdf}
-              disabled={pdfGenerating}
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs tracking-wider uppercase px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
-            >
-              {pdfGenerating ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              <span>{pdfGenerating ? 'Gerando PDF...' : 'Baixar PDF de Auditoria'}</span>
-            </button>
-
-            <span className="hidden lg:inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/50 text-emerald-600 font-bold text-[10px] tracking-wider uppercase px-2.5 py-2 rounded-full">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
-              Auditoria Conectada
-            </span>
-          </div>
+          <span className="hidden sm:inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/50 text-emerald-600 font-bold text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-full">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
+            Auditoria Conectada
+          </span>
         </div>
 
         {activeSubTab === 'dashboard' && (
@@ -2495,19 +2495,6 @@ export default function AdminPage() {
                 <Clock className="w-5 h-5 text-slate-500" />
                 Histórico de Votações Encerradas (Auditorias Salvas)
               </h2>
-
-              <button
-                onClick={handleDownloadPdf}
-                disabled={pdfGenerating}
-                className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs tracking-wider uppercase px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 shrink-0"
-              >
-                {pdfGenerating ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-                <span>{pdfGenerating ? 'Gerando PDF...' : 'Baixar PDF de Auditoria'}</span>
-              </button>
             </div>
 
             {historyList.length === 0 ? (
