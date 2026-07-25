@@ -32,9 +32,11 @@ import {
   Archive,
   Eye,
   Shield,
-  Radio
+  Radio,
+  Download
 } from 'lucide-react';
 import { pb, Candidato, VotacaoConfig, Patrocinador, Grupo, HistoricoVotacao, Etapa, GrupoVideo } from '@/lib/pocketbase';
+import { generateAuditPDF } from '@/lib/pdfAuditGenerator';
 
 type AdminTab = 'dashboard' | 'candidatos' | 'patrocinadores' | 'grupos' | 'etapas' | 'historico' | 'equipe';
 
@@ -83,6 +85,8 @@ export default function AdminPage() {
   const [statusLoading, setStatusLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [roundPdfLoadingId, setRoundPdfLoadingId] = useState<string | null>(null);
   
   // Influencer CRUD Form State
   const [newCandName, setNewCandName] = useState('');
@@ -473,6 +477,39 @@ export default function AdminPage() {
       alert('Erro ao arquivar votação.');
     } finally {
       setArchiveLoading(false);
+    }
+  };
+
+  // Generate and Download Audit PDF Report
+  const handleDownloadPdf = async () => {
+    setPdfGenerating(true);
+    try {
+      await generateAuditPDF({
+        candidates,
+        groups,
+        config,
+        history: historyList,
+      });
+    } catch (err) {
+      console.error('Erro ao gerar PDF de Auditoria:', err);
+      alert('Ocorreu um erro ao gerar o PDF de auditoria.');
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
+  // Generate and Download PDF for a specific historical round
+  const handleDownloadRoundPdf = async (histRecord: HistoricoVotacao) => {
+    setRoundPdfLoadingId(histRecord.id);
+    try {
+      await generateAuditPDF({
+        historyRecord: histRecord,
+      });
+    } catch (err) {
+      console.error('Erro ao gerar PDF da rodada:', err);
+      alert('Erro ao gerar o PDF desta rodada.');
+    } finally {
+      setRoundPdfLoadingId(null);
     }
   };
 
@@ -1227,10 +1264,25 @@ export default function AdminPage() {
             </p>
           </div>
           
-          <span className="hidden sm:inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/50 text-emerald-600 font-bold text-[10px] tracking-wider uppercase px-2.5 py-1 rounded-full">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
-            Auditoria Conectada
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownloadPdf}
+              disabled={pdfGenerating}
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs tracking-wider uppercase px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            >
+              {pdfGenerating ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span>{pdfGenerating ? 'Gerando PDF...' : 'Baixar PDF de Auditoria'}</span>
+            </button>
+
+            <span className="hidden lg:inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/50 text-emerald-600 font-bold text-[10px] tracking-wider uppercase px-2.5 py-2 rounded-full">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
+              Auditoria Conectada
+            </span>
+          </div>
         </div>
 
         {activeSubTab === 'dashboard' && (
@@ -2438,10 +2490,25 @@ export default function AdminPage() {
         {activeSubTab === 'historico' && (
           // ================= TAB 5: HISTORY (AUDITING) =================
           <div className="flex flex-col gap-6 animate-fadeIn">
-            <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-slate-500" />
-              Histórico de Votações Encerradas (Auditorias Salvas)
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-slate-500" />
+                Histórico de Votações Encerradas (Auditorias Salvas)
+              </h2>
+
+              <button
+                onClick={handleDownloadPdf}
+                disabled={pdfGenerating}
+                className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs tracking-wider uppercase px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 shrink-0"
+              >
+                {pdfGenerating ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                <span>{pdfGenerating ? 'Gerando PDF...' : 'Baixar PDF de Auditoria'}</span>
+              </button>
+            </div>
 
             {historyList.length === 0 ? (
               <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-slate-400 font-bold text-sm">
@@ -2517,6 +2584,20 @@ export default function AdminPage() {
                           </table>
                         </div>
                       </div>
+
+                      {/* Button to download PDF of this specific round */}
+                      <button
+                        onClick={() => handleDownloadRoundPdf(hist)}
+                        disabled={roundPdfLoadingId === hist.id}
+                        className="w-full mt-1 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+                      >
+                        {roundPdfLoadingId === hist.id ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                          <Download className="w-4 h-4 text-amber-400" />
+                        )}
+                        <span>{roundPdfLoadingId === hist.id ? 'Gerando PDF da Rodada...' : 'Baixar PDF Desta Rodada'}</span>
+                      </button>
                     </div>
                   );
                 })}
