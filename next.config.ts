@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export",
+  // output: "export", // Habilita servidor Node.js com rotas de API dinâmicas (/api/vote, /api/cron)
   images: {
     unoptimized: true,
     remotePatterns: [
