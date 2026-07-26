@@ -37,16 +37,7 @@ export async function POST(request: Request) {
     const xForwardedFor = request.headers.get('x-forwarded-for');
     const ip = xForwardedFor ? xForwardedFor.split(',')[0].trim() : '127.0.0.1';
 
-    // Rate Limiting Check (3s cooldown for individual candidate voting)
-    if (candidatoId && !grupoId) {
-      const rateLimitResult = await checkRateLimit(ip, 3);
-      if (!rateLimitResult.allowed) {
-        return NextResponse.json(
-          { error: `Aguarde ${rateLimitResult.remainingSeconds}s para votar novamente.` },
-          { status: 429 }
-        );
-      }
-    }
+
 
     // Build ultra-lightweight vote event
     const voteEvent: VoteEvent = {

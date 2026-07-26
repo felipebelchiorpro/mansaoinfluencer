@@ -1112,8 +1112,8 @@ export default function AdminPage() {
 
   // Calculations
   const activeCandidates = config?.tipo === 'repescagem'
-    ? candidates.filter(c => c.ativo === true)
-    : candidates.filter(c => c.ativo === true && !c.eliminado);
+    ? candidates.filter(c => c.ativo === true && !c.eliminado)
+    : candidates.filter(c => c.ativo === false && !c.eliminado);
   const totalVotesCandidates = activeCandidates.reduce((sum, c) => sum + c.votos_count, 0);
   const totalVotesGroups = groups.reduce((sum, g) => sum + g.votos_count, 0);
   const activeTotalVotes = config?.tipo === 'grupo' ? totalVotesGroups : totalVotesCandidates;

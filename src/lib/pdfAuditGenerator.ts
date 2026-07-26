@@ -188,13 +188,9 @@ export async function generateAuditPDF({
 
     const isGroupVoting = config?.tipo === 'grupo';
     const isRepescagem = config?.tipo === 'repescagem';
-
-    let activeCandidates: Candidato[] = [];
-    if (isRepescagem) {
-      activeCandidates = candidates.filter((c) => c.ativo === true);
-    } else {
-      activeCandidates = candidates.filter((c) => c.ativo === true && !c.eliminado);
-    }
+    const activeCandidates: Candidato[] = isRepescagem
+      ? candidates.filter((c) => c.ativo === true && !c.eliminado)
+      : candidates.filter((c) => c.ativo === false && !c.eliminado);
 
     const totalVotesCandidates = activeCandidates.reduce((sum, c) => sum + (c.votos_count || 0), 0);
     const totalVotesGroups = groups.reduce((sum, g) => sum + (g.votos_count || 0), 0);

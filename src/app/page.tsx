@@ -33,9 +33,8 @@ export default function Home() {
   const [stageVideos, setStageVideos] = useState<GrupoVideo[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Voting & Cooldown state (Individual only)
+  // Voting state
   const [votingForId, setVotingForId] = useState<string | null>(null);
-  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' }[]>([]);
   
   // Timer state
@@ -215,31 +214,7 @@ export default function Home() {
     };
   }, []);
 
-  // Cooldown sync (Individual)
-  useEffect(() => {
-    const lastVoteTime = localStorage.getItem('last_vote_timestamp');
-    if (lastVoteTime) {
-      const elapsed = Date.now() - parseInt(lastVoteTime, 10);
-      if (elapsed < 3000) {
-        setCooldownRemaining(Math.ceil((3000 - elapsed) / 1000));
-      }
-    }
-  }, []);
 
-  // Cooldown interval
-  useEffect(() => {
-    if (cooldownRemaining <= 0) return;
-    const interval = setInterval(() => {
-      setCooldownRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [cooldownRemaining]);
 
   // Countdown timer
   useEffect(() => {
@@ -317,11 +292,6 @@ export default function Home() {
       return;
     }
 
-    if (!isGroup && cooldownRemaining > 0) {
-      addToast(`Aguarde ${cooldownRemaining}s para votar novamente.`, 'error');
-      return;
-    }
-
     setVotingForId(id);
 
     try {
@@ -352,10 +322,6 @@ export default function Home() {
           addToast('A votação foi oficialmente encerrada no sistema.', 'error');
           return;
         }
-        if (voteResponse.status === 429) {
-          addToast(errData.error || `Aguarde ${cooldownRemaining || 3}s para votar novamente.`, 'error');
-          return;
-        }
         addToast(errData.error || 'Erro ao registrar voto.', 'error');
         return;
       }
@@ -383,14 +349,10 @@ export default function Home() {
         }).catch(() => {});
 
         addToast('Voto registrado com sucesso!', 'success');
-
-        const now = Date.now();
-        localStorage.setItem('last_vote_timestamp', now.toString());
-        setCooldownRemaining(3);
       }
     } catch (err: any) {
-      console.error(err);
-      addToast('Erro de conexão ao enviar o voto.', 'error');
+      // Resiliência de rede: trata erro momentâneo de requisição de forma silenciosa no Front-end sem mudar o estado da UI
+      console.warn('[Voto] Oscilação de rede ao enviar voto. Mantendo UI ativa para a próxima ação:', err);
     } finally {
       setVotingForId(null);
     }
@@ -719,10 +681,14 @@ export default function Home() {
                       }).map((candidate) => {
                         const isRepescagem = config?.tipo === 'repescagem';
                         const isEliminated = candidate.eliminado;
-                        const isActive = isRepescagem
-                          ? (candidate.ativo === true && !isEliminated)
-                          : (!isEliminated && candidate.ativo === true);
-                        const isGray = isEliminated || !isActive;
+                        const isInParedao = candidate.ativo === true;
+
+                        // Na Repescagem: pode votar se estiver no paredao (isInParedao) e nao estiver eliminado
+                        // Na Votação Individual: quem tiver a chave "No Paredão" ativada (isInParedao) fica em preto e branco e NÃO pode ser votado. Os que estão fora do paredão estão disponíveis para votar.
+                        const isAvailable = isRepescagem
+                          ? (isInParedao && !isEliminated)
+                          : (!isInParedao && !isEliminated);
+                        const isGray = !isAvailable;
                         
                         return (
                           <div
@@ -753,11 +719,11 @@ export default function Home() {
                                     Eliminado(a)
                                   </span>
                                 </div>
-                              ) : !isActive ? (
+                              ) : isInParedao ? (
                                 <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex flex-col items-center justify-center gap-1.5 p-3 animate-fadeIn">
                                   <EyeOff className="w-7 h-7 text-white/95" />
                                   <span className="bg-slate-700 text-white font-extrabold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
-                                    Fora do Paredão
+                                    No Paredão
                                   </span>
                                 </div>
                               ) : isVotingClosed ? (
@@ -787,16 +753,14 @@ export default function Home() {
                               <div className="mt-auto">
                                 <button
                                   onClick={() => handleVote(candidate.id, false)}
-                                  disabled={isVotingClosed || isGray || votingForId !== null || cooldownRemaining > 0}
+                                  disabled={isVotingClosed || isGray || votingForId !== null}
                                   className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all active:scale-[0.98] select-none flex items-center justify-center gap-2 cursor-pointer ${
                                     isEliminated
                                       ? 'bg-red-50 text-red-500 border border-red-100 cursor-not-allowed'
-                                      : !isActive
+                                      : isInParedao
                                       ? 'bg-slate-100 text-slate-405 border border-slate-200 cursor-not-allowed'
                                       : isVotingClosed
                                       ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-                                      : cooldownRemaining > 0
-                                      ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
                                       : votingForId === candidate.id
                                       ? 'bg-blue-600 text-white cursor-wait'
                                       : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-sm'
@@ -804,15 +768,13 @@ export default function Home() {
                                 >
                                   {isEliminated ? (
                                     'INATIVO'
-                                  ) : !isActive ? (
-                                    'FORA DO PAREDÃO'
+                                  ) : isInParedao ? (
+                                    'NO PAREDÃO'
                                   ) : votingForId === candidate.id ? (
                                     <>
                                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                       Registrando...
                                     </>
-                                  ) : cooldownRemaining > 0 ? (
-                                    `Aguarde (${cooldownRemaining}s)`
                                   ) : isVotingClosed ? (
                                     'Fechado'
                                   ) : isRepescagem ? (
