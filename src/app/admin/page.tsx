@@ -318,11 +318,22 @@ export default function AdminPage() {
       await pb.admins.authWithPassword(adminEmail, adminPassword);
       setIsAuthenticated(true);
       sessionStorage.setItem('admin_authenticated', 'true');
+      sessionStorage.setItem('admin_email', adminEmail);
+      sessionStorage.setItem('admin_pass', adminPassword);
     } catch (err: any) {
       setAuthError('E-mail ou senha incorretos, ou erro de conexão.');
       console.error(err);
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  // Helper para reautenticar se a sessao do navegador tiver expirado
+  const ensureAdminAuth = async () => {
+    if (!pb.authStore.isValid || !pb.authStore.isAdmin) {
+      const savedEmail = sessionStorage.getItem('admin_email') || 'admin@mansao.com';
+      const savedPass = sessionStorage.getItem('admin_pass') || 'admin123456789';
+      await pb.admins.authWithPassword(savedEmail, savedPass).catch(() => {});
     }
   };
 
@@ -334,10 +345,11 @@ export default function AdminPage() {
     }
     setStatusLoading(true);
     try {
+      await ensureAdminAuth();
       const newStatus = !config.ativa;
       const updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, {
         ativa: newStatus
-      });
+      }, { requestKey: null });
       setConfig(updated);
 
       // Sincroniza o status soberano no Redis
@@ -358,12 +370,13 @@ export default function AdminPage() {
   const handleToggleEliminated = async (candId: string, currentStatus: boolean) => {
     setActionLoadingId(candId);
     try {
+      await ensureAdminAuth();
       const willBeEliminated = !currentStatus;
       await pb.collection('candidatos').update(candId, {
         eliminado: willBeEliminated,
         // Auto deactivate from Paredão if eliminated, or activate if returned to house
         ativo: willBeEliminated ? false : true
-      });
+      }, { requestKey: null });
     } catch (err) {
       console.error(err);
       alert('Erro ao alterar status do participante.');
@@ -376,9 +389,10 @@ export default function AdminPage() {
   const handleToggleCandidateAtivo = async (candId: string, currentStatus: boolean) => {
     setActionLoadingId(candId);
     try {
+      await ensureAdminAuth();
       await pb.collection('candidatos').update(candId, {
         ativo: !currentStatus
-      });
+      }, { requestKey: null });
     } catch (err) {
       console.error(err);
       alert('Erro ao alterar status de votação do participante.');
@@ -395,6 +409,7 @@ export default function AdminPage() {
     setSaveSuccess(false);
 
     try {
+      await ensureAdminAuth();
       const data = {
         titulo: editTitle || 'Quem você quer que continue na Mansão?',
         expira_em: editExpire ? new Date(editExpire).toISOString() : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -403,19 +418,19 @@ export default function AdminPage() {
 
       let updated;
       if (config) {
-        updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, data);
+        updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, data, { requestKey: null });
       } else {
         updated = await pb.collection('votacoes_config').create<VotacaoConfig>({
           ...data,
           ativa: false
-        });
+        }, { requestKey: null });
       }
       setConfig(updated);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Erro ao salvar as configurações.');
+      alert(`Erro ao salvar as configurações: ${err?.message || 'Falha ao salvar no banco.'}`);
     } finally {
       setSaveLoading(false);
     }

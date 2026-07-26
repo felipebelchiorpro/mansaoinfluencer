@@ -43,23 +43,26 @@ export default function Home() {
   const [isExpired, setIsExpired] = useState(false);
 
   // Helper functions to get files/logos/videos from PocketBase uploads with fallbacks
-  const getCandFoto = (cand: Candidato, thumb?: string) => {
+  const getCandFoto = (cand: Candidato, _thumb?: string) => {
     if (cand.foto_file) {
-      return pb.files.getUrl(cand, cand.foto_file, thumb ? { thumb } : undefined);
+      const collection = (cand as any).collectionId || (cand as any).collectionName || 'candidatos';
+      return `https://api.vortexsync.pro/api/files/${collection}/${cand.id}/${cand.foto_file}`;
     }
-    return cand.foto_url;
+    return cand.foto_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
   };
 
-  const getSponLogo = (spon: Patrocinador, thumb?: string) => {
+  const getSponLogo = (spon: Patrocinador, _thumb?: string) => {
     if (spon.logo_file) {
-      return pb.files.getUrl(spon, spon.logo_file, thumb ? { thumb } : undefined);
+      const collection = (spon as any).collectionId || (spon as any).collectionName || 'patrocinadores';
+      return `https://api.vortexsync.pro/api/files/${collection}/${spon.id}/${spon.logo_file}`;
     }
     return spon.logo_url;
   };
 
   const getGrpVideo = (grp: Grupo) => {
     if (grp.video_file) {
-      return pb.files.getUrl(grp, grp.video_file);
+      const collection = (grp as any).collectionId || (grp as any).collectionName || 'grupos';
+      return `https://api.vortexsync.pro/api/files/${collection}/${grp.id}/${grp.video_file}`;
     }
     return grp.video_url;
   };
@@ -258,6 +261,8 @@ export default function Home() {
           const data = await res.json();
           if (data.status === 'closed' || data.active === false) {
             setIsExpired(true);
+          } else {
+            setIsExpired(false);
           }
         }
       } catch (err) {
