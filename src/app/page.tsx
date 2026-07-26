@@ -668,7 +668,7 @@ export default function Home() {
                   // INDIVIDUAL & REPESCAGEM VOTING VIEW
                   <div className="w-full max-w-4xl flex flex-col gap-6 animate-fadeIn">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center sm:text-left">
-                      {config?.tipo === 'repescagem' ? 'Escolha quem deve retornar ao reality:' : 'Quem merece ganhar a Mansão dos Influenciadores 2.0?'}
+                      {config?.tipo === 'repescagem' ? 'Escolha quem deve retornar ao reality:' : 'Quem merece vencer a Mansão dos Influenciadores 2.0?'}
                     </h3>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
