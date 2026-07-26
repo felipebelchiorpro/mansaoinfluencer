@@ -184,6 +184,51 @@ const WINNERS = {
   third: INFLUENCERS_LIST.find(c => c.id === 'wlwtmdqdq1bmszp')!, // Lucas Osminerin
 };
 
+interface StaticSponsor {
+  id: string;
+  nome: string;
+  logo: string;
+}
+
+// Complete static list of 35 sponsors from the season
+const SPONSORS_LIST: StaticSponsor[] = [
+  { id: "3mfyxsei6urlgv1", nome: "Calori Odontologia", logo: "https://api.vortexsync.pro/api/files/patrocinadores/3mfyxsei6urlgv1/698817601_18000186539927691_1562159891364107306_n_u4XfkuciQ9.jpg" },
+  { id: "np5ji2ehxdbnza3", nome: "R E A Lubrificantes", logo: "https://api.vortexsync.pro/api/files/patrocinadores/np5ji2ehxdbnza3/671871463_17921237367351472_2292714230580803708_n_fUlRS0Hlx0.jpg" },
+  { id: "ptoy4xy4y5p5exo", nome: "Rede Shop 25 Varginha", logo: "https://api.vortexsync.pro/api/files/patrocinadores/ptoy4xy4y5p5exo/708854343_18098300861016898_1849814921063377070_n_vyWxm2vm0i.jpg" },
+  { id: "35bdybkzgxcn4mq", nome: "Top Make 10 Varginha", logo: "https://api.vortexsync.pro/api/files/patrocinadores/35bdybkzgxcn4mq/710176658_17869296672619418_3527498742747067169_n_qs6zJFsNjr.jpg" },
+  { id: "yilv1o6nqogdnkl", nome: "Café Artesanal Trem Bão", logo: "https://api.vortexsync.pro/api/files/patrocinadores/yilv1o6nqogdnkl/651447553_17918425455291991_7257831286324036357_n_1_HY0C7DrgQ0.jpg" },
+  { id: "2x0xlfydwgo1wd9", nome: "Chopp Mr. Domn Alfenas", logo: "https://api.vortexsync.pro/api/files/patrocinadores/2x0xlfydwgo1wd9/425578536_1110858960364507_1513968947149879219_n_0Gh9zyLqMW.jpg" },
+  { id: "sli3ojj4ow54ojm", nome: "Cervejaria Ashby", logo: "https://api.vortexsync.pro/api/files/patrocinadores/sli3ojj4ow54ojm/92402121_662611437865936_4238094782175379456_n_zwKnAKgf0D.jpg" },
+  { id: "7rb169it2yawbco", nome: "Nova Ret Retifica", logo: "https://api.vortexsync.pro/api/files/patrocinadores/7rb169it2yawbco/527252195_17888024601321302_4471720677399753554_n_aMY2Q42VeE.jpg" },
+  { id: "llou3qy7a8budm9", nome: "Agrotelecom", logo: "https://api.vortexsync.pro/api/files/patrocinadores/llou3qy7a8budm9/573723324_17940205887086907_49842549559697146_n_1_PofVAfWhNR.jpg" },
+  { id: "a9ajgecufbqfn4a", nome: "Lagos Quimica", logo: "https://api.vortexsync.pro/api/files/patrocinadores/a9ajgecufbqfn4a/106136583_2596185403956879_4995612710276018677_n_HI6qRiuZoT.jpg" },
+  { id: "7jf1ckiz7cwinqh", nome: "Merci Brasilia", logo: "https://api.vortexsync.pro/api/files/patrocinadores/7jf1ckiz7cwinqh/474815703_1167489698274155_4182452094463165800_n_WxILfE7ih6.jpg" },
+  { id: "d7r0g08o58m99vf", nome: "Advogado Diogo Luiz Antonio", logo: "https://api.vortexsync.pro/api/files/patrocinadores/d7r0g08o58m99vf/218329279_252763922962388_1747153581823002891_n_1_mK0lHYGaOu.jpg" },
+  { id: "p6qsmzunkj3eece", nome: "Aped Viagens", logo: "https://api.vortexsync.pro/api/files/patrocinadores/p6qsmzunkj3eece/619855544_18379283269159422_4278700004927499667_n_X6peyMHrKU.jpg" },
+  { id: "b1jqhsnczz2snpl", nome: "Couro Minas Country", logo: "https://api.vortexsync.pro/api/files/patrocinadores/b1jqhsnczz2snpl/306783600_387034206953115_4959582120263125500_n_9zFCAoRMnw.jpg" },
+  { id: "ino7o0hnnlrrbvc", nome: "Frutos de Goiás", logo: "https://api.vortexsync.pro/api/files/patrocinadores/ino7o0hnnlrrbvc/9cda552727e447479c6e056b32f31da4_1_78qR9D4atZ.jpg" },
+  { id: "qhxqysh1obklvn5", nome: "Aluguel Casa Temporada Alfenas", logo: "https://api.vortexsync.pro/api/files/patrocinadores/qhxqysh1obklvn5/447939077_725093352956214_6884110486004798282_n_se978mLNun.jpg" },
+  { id: "ud2obf0062pp8x3", nome: "Mecânica do Wandeir O Ze Alegria", logo: "https://api.vortexsync.pro/api/files/patrocinadores/ud2obf0062pp8x3/683968187_18577796782056674_4387879505122137741_n_1_jAX9OWFbFg.jpg" },
+  { id: "fqoy5enar6a4so7", nome: "Francisco Eletricista", logo: "https://api.vortexsync.pro/api/files/patrocinadores/fqoy5enar6a4so7/584405750_18546134164027601_4046224414326372038_n_Agrn5S9hZt.jpg" },
+  { id: "a8p5r3z9n00fw6p", nome: "Pizzaria Cantinho Italiano", logo: "https://api.vortexsync.pro/api/files/patrocinadores/a8p5r3z9n00fw6p/629081700_18083453042235893_229052402025114469_n_OQwdKctG4W.jpg" },
+  { id: "s2nmxgt5ql8a3md", nome: "Chefe Rodolfo Rodrigues", logo: "https://api.vortexsync.pro/api/files/patrocinadores/s2nmxgt5ql8a3md/452250107_1986334761813831_155676822696779168_n_RKqmbBmMV8.jpg" },
+  { id: "885cj1pbqnzdonu", nome: "Bis Burguer Alfenas", logo: "https://api.vortexsync.pro/api/files/patrocinadores/885cj1pbqnzdonu/403946718_1047008120086289_2713595901849345841_n_DkC3ObKTfc.jpg" },
+  { id: "yycxt2fdcxcar11", nome: "Supermercado da Vanda", logo: "https://api.vortexsync.pro/api/files/patrocinadores/yycxt2fdcxcar11/152987930_149953216953998_1630523733332635152_n_mnD4VYTFZH.jpg" },
+  { id: "rmpopjueczfdohp", nome: "Dr. Marcos Oncologista", logo: "https://api.vortexsync.pro/api/files/patrocinadores/rmpopjueczfdohp/752325831_18069571016711706_44696512938640912_n_zkiRVEC3xE.jpg" },
+  { id: "3w89aiijtjqrszp", nome: "Anderson e Elvis", logo: "https://api.vortexsync.pro/api/files/patrocinadores/3w89aiijtjqrszp/729619315_18106164881018893_9005666690702300816_n_w6uxbDZa3B.jpg" },
+  { id: "0wtinkomlzi5vyz", nome: "Gellaty Sorvetes", logo: "https://api.vortexsync.pro/api/files/patrocinadores/0wtinkomlzi5vyz/292201682_289470783356015_599682440557165218_n_sikt0YC3v2.jpg" },
+  { id: "hb1u2n6yjdrbuuc", nome: "Churrasqueiro Adilson Manezinho", logo: "https://api.vortexsync.pro/api/files/patrocinadores/hb1u2n6yjdrbuuc/318035110_841431617071672_6429487765841357686_n_WeidjwQwEF.jpg" },
+  { id: "4xv7smzp0wfuo4m", nome: "Gabriel Vancini Cantor", logo: "https://api.vortexsync.pro/api/files/patrocinadores/4xv7smzp0wfuo4m/722666675_18322604623259464_6035309822006197393_n_f0lmj2Koez.jpg" },
+  { id: "uyasxjjgh7txm0f", nome: "Doceria Jujubas", logo: "https://api.vortexsync.pro/api/files/patrocinadores/uyasxjjgh7txm0f/525097874_17908297965191938_3303527629756759864_n_8z58kMubsv.jpg" },
+  { id: "r39i3kds189dach", nome: "Duo Vibe Djs", logo: "https://api.vortexsync.pro/api/files/patrocinadores/r39i3kds189dach/719519641_17949411120188264_2887431003726751301_n_lRN6BVMpKC.jpg" },
+  { id: "5zqqvivfcjr6ha2", nome: "Decoração Suzy Maryhel Eventos", logo: "https://api.vortexsync.pro/api/files/patrocinadores/5zqqvivfcjr6ha2/588714625_18106557430636945_8329103582161762898_n_RPRZQ3WB9v.jpg" },
+  { id: "cmd9sh70p1k8wcl", nome: "Hot Dog Du Bebezão", logo: "https://api.vortexsync.pro/api/files/patrocinadores/cmd9sh70p1k8wcl/502982189_17845277022494796_854504523669265456_n_F1vkRMykxA.jpg" },
+  { id: "dsusy3cawdays96", nome: "Bar do Peixe Alfenas", logo: "https://api.vortexsync.pro/api/files/patrocinadores/dsusy3cawdays96/222771622_525502012207401_8063266969003342176_n_iNZAO4nbVt.jpg" },
+  { id: "q93meunq4ghh1qz", nome: "Casa do Celular Varginha", logo: "https://api.vortexsync.pro/api/files/patrocinadores/q93meunq4ghh1qz/741806426_17899095366533126_5792799275788275308_n_o5pjDn2UU1.jpg" },
+  { id: "la04rda7u3nmii5", nome: "Soluções Vortex Sync Outsourcing Brasil", logo: "https://api.vortexsync.pro/api/files/patrocinadores/la04rda7u3nmii5/723111220_18011304962904048_7336533085026126446_n_x1ihFWMjjc.jpg" },
+  { id: "cujox0ckswmgmkn", nome: "Casa Redes Alencar", logo: "https://api.vortexsync.pro/api/files/patrocinadores/cujox0ckswmgmkn/alencar_8rmW19esFr.webp" }
+];
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('vencedores');
 
@@ -451,8 +496,45 @@ export default function Home() {
         </div>
       </main>
 
+      {/* SPONSORS SECTION */}
+      <section className="w-full max-w-5xl mx-auto px-4 mt-8 mb-8 animate-fadeIn">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xs flex flex-col items-center gap-6">
+          <div className="text-center">
+            <h3 className="text-xs font-black text-amber-500 uppercase tracking-widest mb-1">
+              Agradecimento Especial
+            </h3>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              Patrocinadores & Parceiros Oficiais
+            </h2>
+          </div>
+
+          <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6 items-center justify-center pt-2">
+            {SPONSORS_LIST.map((sponsor) => (
+              <div
+                key={sponsor.id}
+                className="flex flex-col items-center justify-center p-3 bg-slate-50 border border-slate-100 rounded-2xl hover:border-amber-300 hover:bg-amber-50/50 transition-all duration-300 group h-28"
+                title={sponsor.nome}
+              >
+                <div className="relative w-16 h-16 flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={sponsor.logo}
+                    alt={sponsor.nome}
+                    className="max-w-full max-h-full object-contain filter group-hover:scale-105 transition-transform duration-300 rounded-lg"
+                    loading="lazy"
+                  />
+                </div>
+                <span className="text-[10px] font-extrabold text-slate-600 text-center leading-tight mt-1 line-clamp-1 group-hover:text-amber-700">
+                  {sponsor.nome}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="w-full border-t border-slate-200 bg-white py-6 mt-12">
+      <footer className="w-full border-t border-slate-200 bg-white py-6 mt-4">
         <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-semibold">
           <p>© 2026 Mansão dos Influencers. Todos os direitos reservados.</p>
           <div className="flex items-center gap-2 text-slate-500">
