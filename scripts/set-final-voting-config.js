@@ -9,7 +9,7 @@ async function setFinalVotingConfig() {
 
     // Expira em: Hoje 26/07/2026 às 18:00 BRT (6 horas da tarde)
     const expiraEm = new Date('2026-07-26T18:00:00-03:00').toISOString();
-    const titulo = 'Quem você quer que seja o ganhador da Mansão 2.0?';
+    const titulo = 'Quem merece ganhar a Mansão dos Influenciadores 2.0?';
     const tipo = 'individual';
     const ativa = true;
 
@@ -48,7 +48,6 @@ async function setFinalVotingConfig() {
     console.log(`Tipo: ${tipo}`);
     console.log(`Ativa: ${ativa}`);
     console.log(`Expira Em (UTC): ${expiraEm}`);
-    console.log(`Expira Em (BRT): 26/07/2026 18:00:00 BRT (6h da tarde)`);
 
   } catch (err) {
     console.error('❌ Erro ao configurar votação:', err);
