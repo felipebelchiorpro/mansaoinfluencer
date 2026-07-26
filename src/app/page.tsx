@@ -71,13 +71,23 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch config
-        const configList = await pb.collection('votacoes_config').getFullList<VotacaoConfig>({
-          sort: '-created',
-          requestKey: 'page_config'
-        });
-        const activeConfig = configList.find(c => c.ativa === true) || configList[0] || null;
-        setConfig(activeConfig);
+        // Fetch config via API soberana
+        try {
+          const cfgRes = await fetch('/api/save-config', { cache: 'no-store' });
+          if (cfgRes.ok) {
+            const cfgData = await cfgRes.json();
+            if (cfgData.config) {
+              setConfig(cfgData.config);
+            }
+          }
+        } catch (cErr) {
+          const configList = await pb.collection('votacoes_config').getFullList<VotacaoConfig>({
+            sort: '-created',
+            requestKey: 'page_config'
+          }).catch(() => []);
+          const activeConfig = configList.find(c => c.ativa === true) || configList[0] || null;
+          if (activeConfig) setConfig(activeConfig);
+        }
 
         // Fetch candidates
         const candidatesList = await pb.collection('candidatos').getFullList<Candidato>({
@@ -265,6 +275,15 @@ export default function Home() {
             setIsExpired(false);
           }
         }
+
+        // Sincroniza tambem a config atualizada
+        const cfgRes = await fetch('/api/save-config', { cache: 'no-store' }).catch(() => null);
+        if (cfgRes && cfgRes.ok) {
+          const cfgData = await cfgRes.json().catch(() => null);
+          if (cfgData && cfgData.config) {
+            setConfig(cfgData.config);
+          }
+        }
       } catch (err) {
         // Resiliência Visual: Se falhar por oscilação de rede ou timeout, MANTÉM a UI ativa!
         console.warn('[Status Check] Oscilação de rede ao checar status. Mantendo UI ativa para tentativa de voto:', err);
@@ -272,7 +291,7 @@ export default function Home() {
     }
 
     checkVotingStatus();
-    const statusInterval = setInterval(checkVotingStatus, 10000);
+    const statusInterval = setInterval(checkVotingStatus, 5000);
     return () => clearInterval(statusInterval);
   }, []);
 

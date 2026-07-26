@@ -200,3 +200,35 @@ export async function setVotingStatus(status: 'open' | 'closed'): Promise<void> 
   }
 }
 
+const VOTING_CONFIG_KEY = 'active_voting_config';
+let memoryVotingConfig: any = null;
+
+export async function getConfigFromRedis(): Promise<any> {
+  try {
+    if (upstashClient) {
+      const val = await upstashClient.get<any>(VOTING_CONFIG_KEY);
+      if (val) return typeof val === 'string' ? JSON.parse(val) : val;
+    } else if (ioRedisClient) {
+      const val = await ioRedisClient.get(VOTING_CONFIG_KEY);
+      if (val) return typeof val === 'string' ? JSON.parse(val) : val;
+    }
+  } catch (err) {
+    console.warn('[Redis] Erro ao ler active_voting_config:', err);
+  }
+  return memoryVotingConfig;
+}
+
+export async function setConfigInRedis(config: any): Promise<void> {
+  memoryVotingConfig = config;
+  try {
+    const valStr = JSON.stringify(config);
+    if (upstashClient) {
+      await upstashClient.set(VOTING_CONFIG_KEY, valStr);
+    } else if (ioRedisClient) {
+      await ioRedisClient.set(VOTING_CONFIG_KEY, valStr);
+    }
+  } catch (err) {
+    console.warn('[Redis] Erro ao gravar active_voting_config:', err);
+  }
+}
+

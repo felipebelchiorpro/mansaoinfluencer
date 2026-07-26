@@ -409,25 +409,37 @@ export default function AdminPage() {
     setSaveSuccess(false);
 
     try {
-      await ensureAdminAuth();
-      const data = {
+      const payload = {
         titulo: editTitle || 'Quem você quer que continue na Mansão?',
         expira_em: editExpire ? new Date(editExpire).toISOString() : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        tipo: editType || 'individual'
+        tipo: editType || 'individual',
+        ativa: config?.ativa ?? true,
       };
 
-      let updated;
-      if (config) {
-        updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, data, { requestKey: null });
+      const res = await fetch('/api/save-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const resData = await res.json().catch(() => ({}));
+
+      if (res.ok && resData.config) {
+        setConfig(resData.config);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        updated = await pb.collection('votacoes_config').create<VotacaoConfig>({
-          ...data,
-          ativa: false
-        }, { requestKey: null });
+        await ensureAdminAuth();
+        let updated;
+        if (config) {
+          updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, payload, { requestKey: null });
+        } else {
+          updated = await pb.collection('votacoes_config').create<VotacaoConfig>({ ...payload }, { requestKey: null });
+        }
+        setConfig(updated);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
       }
-      setConfig(updated);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
       console.error(err);
       alert(`Erro ao salvar as configurações: ${err?.message || 'Falha ao salvar no banco.'}`);
