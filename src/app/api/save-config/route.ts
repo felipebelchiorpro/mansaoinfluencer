@@ -40,18 +40,20 @@ export async function POST(request: Request) {
     const { titulo, expira_em, tipo, ativa } = body;
 
     const configList = await pb.collection('votacoes_config').getFullList({
+      sort: '-created',
       requestKey: null
     }).catch(() => []);
 
-    const targetId = configList.length > 0 ? configList[0].id : null;
+    const activeConfig = configList.find((c) => c.ativa === true) || configList[0] || null;
+    const targetId = activeConfig ? activeConfig.id : null;
 
     const dataToSave = {
       id: targetId || `cfg_${Date.now()}`,
       titulo: titulo || 'Quem você quer que continue na Mansão?',
       expira_em: expira_em || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       tipo: tipo || 'individual',
-      ativa: typeof ativa === 'boolean' ? ativa : (configList[0]?.ativa ?? true),
-      created: configList[0]?.created || new Date().toISOString(),
+      ativa: typeof ativa === 'boolean' ? ativa : (activeConfig?.ativa ?? true),
+      created: activeConfig?.created || new Date().toISOString(),
       updated: new Date().toISOString()
     };
 

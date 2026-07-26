@@ -444,18 +444,31 @@ export default function AdminPage() {
       const resData = await res.json().catch(() => ({}));
 
       if (res.ok && resData.config) {
-        setConfig(resData.config);
+        const savedCfg = resData.config as VotacaoConfig;
+        setConfig(savedCfg);
+        setEditTitle(savedCfg.titulo);
+        setEditType(savedCfg.tipo || 'individual');
+        if (savedCfg.expira_em) {
+          const date = new Date(savedCfg.expira_em);
+          if (!isNaN(date.getTime())) {
+            const tzOffset = date.getTimezoneOffset() * 60000;
+            const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().slice(0, 16);
+            setEditExpire(localISOTime);
+          }
+        }
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
         await ensureAdminAuth();
-        let updated;
+        let updated: VotacaoConfig;
         if (config) {
           updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, payload, { requestKey: null });
         } else {
           updated = await pb.collection('votacoes_config').create<VotacaoConfig>({ ...payload }, { requestKey: null });
         }
         setConfig(updated);
+        setEditTitle(updated.titulo);
+        setEditType(updated.tipo || 'individual');
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       }
