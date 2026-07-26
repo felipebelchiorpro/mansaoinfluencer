@@ -48,7 +48,13 @@ export default function Home() {
       const collection = (cand as any).collectionId || (cand as any).collectionName || 'candidatos';
       return `https://api.vortexsync.pro/api/files/${collection}/${cand.id}/${cand.foto_file}`;
     }
-    return cand.foto_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
+    if (cand.foto_url && cand.foto_url.startsWith('http')) {
+      return cand.foto_url;
+    }
+    if (cand.foto_url) {
+      return `https://api.vortexsync.pro${cand.foto_url.startsWith('/') ? '' : '/'}${cand.foto_url}`;
+    }
+    return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
   };
 
   const getSponLogo = (spon: Patrocinador, _thumb?: string) => {
@@ -710,8 +716,11 @@ export default function Home() {
                         }
                         return true; // individual shows all
                       }).map((candidate) => {
-                        const isEliminated = config?.tipo === 'repescagem' ? false : candidate.eliminado;
-                        const isActive = config?.tipo === 'repescagem' ? true : candidate.ativo !== false;
+                        const isEliminated = candidate.eliminado;
+                        const hasExplicitAtivo = candidates.some(c => c.ativo === true && !c.eliminado);
+                        const isActive = config?.tipo === 'repescagem'
+                          ? candidate.ativo === true
+                          : (!isEliminated && (hasExplicitAtivo ? candidate.ativo === true : true));
                         const isGray = isEliminated || !isActive;
                         
                         return (
