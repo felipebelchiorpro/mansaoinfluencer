@@ -345,12 +345,31 @@ export default function AdminPage() {
     }
     setStatusLoading(true);
     try {
-      await ensureAdminAuth();
       const newStatus = !config.ativa;
-      const updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, {
-        ativa: newStatus
-      }, { requestKey: null });
-      setConfig(updated);
+      const payload = {
+        titulo: editTitle || config.titulo,
+        expira_em: editExpire ? new Date(editExpire).toISOString() : config.expira_em,
+        tipo: editType || config.tipo || 'individual',
+        ativa: newStatus,
+      };
+
+      const res = await fetch('/api/save-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const resData = await res.json().catch(() => ({}));
+
+      if (res.ok && resData.config) {
+        setConfig(resData.config);
+      } else {
+        await ensureAdminAuth();
+        const updated = await pb.collection('votacoes_config').update<VotacaoConfig>(config.id, {
+          ativa: newStatus
+        }, { requestKey: null });
+        setConfig(updated);
+      }
 
       // Sincroniza o status soberano no Redis
       await fetch('/api/voting-status', {
