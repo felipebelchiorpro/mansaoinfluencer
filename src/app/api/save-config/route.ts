@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { getConfigFromRedis, setConfigInRedis, setVotingStatus } from '@/lib/redis';
 import { pb } from '@/lib/pocketbase';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const cachedConfig = await getConfigFromRedis();
