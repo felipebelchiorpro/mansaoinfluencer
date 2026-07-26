@@ -712,15 +712,15 @@ export default function Home() {
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                       {candidates.filter((c) => {
                         if (config?.tipo === 'repescagem') {
-                          // Na Repescagem, exibe os eliminados ou os marcados para voltar
-                          return c.eliminado === true || c.ativo === true;
+                          // Na Repescagem, exibe APENAS quem esta no paredao (ativo === true) e NAO esta eliminado
+                          return c.ativo === true && c.eliminado !== true;
                         }
                         return true; // Individual exibe todos da casa
                       }).map((candidate) => {
                         const isRepescagem = config?.tipo === 'repescagem';
-                        const isEliminated = isRepescagem ? false : candidate.eliminado;
+                        const isEliminated = candidate.eliminado;
                         const isActive = isRepescagem
-                          ? true
+                          ? (candidate.ativo === true && !isEliminated)
                           : (!isEliminated && candidate.ativo === true);
                         const isGray = isEliminated || !isActive;
                         
