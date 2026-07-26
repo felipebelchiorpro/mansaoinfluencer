@@ -216,7 +216,6 @@ const SPONSORS_LIST: StaticSponsor[] = [
   { id: "yycxt2fdcxcar11", nome: "Supermercado da Vanda", logo: "https://api.vortexsync.pro/api/files/patrocinadores/yycxt2fdcxcar11/152987930_149953216953998_1630523733332635152_n_mnD4VYTFZH.jpg" },
   { id: "rmpopjueczfdohp", nome: "Dr. Marcos Oncologista", logo: "https://api.vortexsync.pro/api/files/patrocinadores/rmpopjueczfdohp/752325831_18069571016711706_44696512938640912_n_zkiRVEC3xE.jpg" },
   { id: "3w89aiijtjqrszp", nome: "Anderson e Elvis", logo: "https://api.vortexsync.pro/api/files/patrocinadores/3w89aiijtjqrszp/729619315_18106164881018893_9005666690702300816_n_w6uxbDZa3B.jpg" },
-  { id: "0wtinkomlzi5vyz", nome: "Gellaty Sorvetes", logo: "https://api.vortexsync.pro/api/files/patrocinadores/0wtinkomlzi5vyz/292201682_289470783356015_599682440557165218_n_sikt0YC3v2.jpg" },
   { id: "hb1u2n6yjdrbuuc", nome: "Churrasqueiro Adilson Manezinho", logo: "https://api.vortexsync.pro/api/files/patrocinadores/hb1u2n6yjdrbuuc/318035110_841431617071672_6429487765841357686_n_WeidjwQwEF.jpg" },
   { id: "4xv7smzp0wfuo4m", nome: "Gabriel Vancini Cantor", logo: "https://api.vortexsync.pro/api/files/patrocinadores/4xv7smzp0wfuo4m/722666675_18322604623259464_6035309822006197393_n_f0lmj2Koez.jpg" },
   { id: "uyasxjjgh7txm0f", nome: "Doceria Jujubas", logo: "https://api.vortexsync.pro/api/files/patrocinadores/uyasxjjgh7txm0f/525097874_17908297965191938_3303527629756759864_n_8z58kMubsv.jpg" },
@@ -251,7 +250,7 @@ export default function Home() {
                 className="h-14 sm:h-18 w-auto object-contain drop-shadow-xs transition-all duration-300" 
               />
               <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight hidden min-[540px]:block">
-                MANSÃO DOS <span className="text-amber-500">INFLUENCERS</span>
+                MANSÃO DOS <span className="text-amber-500">INFLUENCIADORES</span>
               </h1>
             </div>
           </div>
