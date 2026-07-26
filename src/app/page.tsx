@@ -21,7 +21,6 @@ interface StaticCandidate {
   nome: string;
   instagram: string;
   foto: string;
-  eliminado?: boolean;
 }
 
 // Complete static list of all 25 influencers from the season
@@ -72,8 +71,7 @@ const INFLUENCERS_LIST: StaticCandidate[] = [
     id: "0v7nkqt29kiuoyo",
     nome: "Gabriel Vancinni",
     instagram: "@gabrielvancinni_oficial",
-    foto: "https://api.vortexsync.pro/api/files/candidatos/0v7nkqt29kiuoyo/722666675_18322604623259464_6035309822006197393_n_1_UlxEhTckmg.jpg",
-    eliminado: true
+    foto: "https://api.vortexsync.pro/api/files/candidatos/0v7nkqt29kiuoyo/722666675_18322604623259464_6035309822006197393_n_1_UlxEhTckmg.jpg"
   },
   {
     id: "21hklxulzvr7ejm",
@@ -91,8 +89,7 @@ const INFLUENCERS_LIST: StaticCandidate[] = [
     id: "2c4btx1y5o1jxjf",
     nome: "Igor da Sanfona",
     instagram: "@igordasanfona",
-    foto: "https://api.vortexsync.pro/api/files/candidatos/2c4btx1y5o1jxjf/730992499_17889979113589211_8420402598049016161_n_1_m56S34YN0u.jpg",
-    eliminado: true
+    foto: "https://api.vortexsync.pro/api/files/candidatos/2c4btx1y5o1jxjf/730992499_17889979113589211_8420402598049016161_n_1_m56S34YN0u.jpg"
   },
   {
     id: "cgk76kj92nkmeuu",
@@ -158,8 +155,7 @@ const INFLUENCERS_LIST: StaticCandidate[] = [
     id: "h9yu20t6k29yxpc",
     nome: "Seu Dedé",
     instagram: "@seudede1",
-    foto: "https://api.vortexsync.pro/api/files/candidatos/h9yu20t6k29yxpc/630152022_17848690041650267_355417608212699277_n_MvOURX5mSm.jpg",
-    eliminado: true
+    foto: "https://api.vortexsync.pro/api/files/candidatos/h9yu20t6k29yxpc/630152022_17848690041650267_355417608212699277_n_MvOURX5mSm.jpg"
   },
   {
     id: "0m50axwqn1b25g8",
@@ -171,8 +167,7 @@ const INFLUENCERS_LIST: StaticCandidate[] = [
     id: "qklrj3nmp8r8gu5",
     nome: "Valéria Huston",
     instagram: "@valeriahuston_35991530598",
-    foto: "https://api.vortexsync.pro/api/files/candidatos/qklrj3nmp8r8gu5/whats_app_image_2026_07_20_at_21_28_stsh3vuTXa.21.jpeg",
-    eliminado: true
+    foto: "https://api.vortexsync.pro/api/files/candidatos/qklrj3nmp8r8gu5/whats_app_image_2026_07_20_at_21_28_stsh3vuTXa.21.jpeg"
   },
   {
     id: "x5lfmnnp6tactv8",
