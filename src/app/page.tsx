@@ -703,7 +703,7 @@ export default function Home() {
 
                 ) : (
                   
-                  // INDIVIDUAL VOTING VIEW (With eliminated grayscale block)
+                  // INDIVIDUAL & REPESCAGEM VOTING VIEW
                   <div className="w-full max-w-4xl flex flex-col gap-6 animate-fadeIn">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center sm:text-left">
                       {config?.tipo === 'repescagem' ? 'Escolha quem deve retornar ao reality:' : 'Quem você quer que continue na Mansão?'}
@@ -712,15 +712,16 @@ export default function Home() {
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                       {candidates.filter((c) => {
                         if (config?.tipo === 'repescagem') {
-                          return c.ativo === true;
+                          // Na Repescagem, exibe os eliminados ou os marcados para voltar
+                          return c.eliminado === true || c.ativo === true;
                         }
-                        return true; // individual shows all
+                        return true; // Individual exibe todos da casa
                       }).map((candidate) => {
-                        const isEliminated = candidate.eliminado;
-                        const hasExplicitAtivo = candidates.some(c => c.ativo === true && !c.eliminado);
-                        const isActive = config?.tipo === 'repescagem'
-                          ? candidate.ativo === true
-                          : (!isEliminated && (hasExplicitAtivo ? candidate.ativo === true : true));
+                        const isRepescagem = config?.tipo === 'repescagem';
+                        const isEliminated = isRepescagem ? false : candidate.eliminado;
+                        const isActive = isRepescagem
+                          ? true
+                          : (!isEliminated && candidate.ativo === true);
                         const isGray = isEliminated || !isActive;
                         
                         return (
@@ -814,6 +815,8 @@ export default function Home() {
                                     `Aguarde (${cooldownRemaining}s)`
                                   ) : isVotingClosed ? (
                                     'Fechado'
+                                  ) : isRepescagem ? (
+                                    'VOTAR PARA VOLTAR'
                                   ) : (
                                     'VOTAR'
                                   )}
