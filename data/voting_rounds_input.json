@@ -1,0 +1,91 @@
+{
+  "competition": {
+    "name": "Mansão Influencer 2026",
+    "edition": "Edição Oficial de Inverno",
+    "generatedAt": "2026-07-27T21:00:00Z"
+  },
+  "stages": [
+    {
+      "id": "rodada_1",
+      "name": "1ª Rodada - Estreia",
+      "totalVotes": 142500,
+      "peakVotesPerMinute": 1850,
+      "startDate": "2026-06-01",
+      "endDate": "2026-06-05"
+    },
+    {
+      "id": "rodada_2",
+      "name": "2ª Rodada - Classificatória",
+      "totalVotes": 289400,
+      "peakVotesPerMinute": 3400,
+      "startDate": "2026-06-10",
+      "endDate": "2026-06-15"
+    },
+    {
+      "id": "rodada_3",
+      "name": "3ª Rodada - Quartas de Final",
+      "totalVotes": 412000,
+      "peakVotesPerMinute": 5200,
+      "startDate": "2026-06-20",
+      "endDate": "2026-06-25"
+    },
+    {
+      "id": "rodada_4",
+      "name": "4ª Rodada - Semifinal",
+      "totalVotes": 685300,
+      "peakVotesPerMinute": 8900,
+      "startDate": "2026-07-01",
+      "endDate": "2026-07-06"
+    },
+    {
+      "id": "repescagem",
+      "name": "Votação da Repescagem",
+      "totalVotes": 530800,
+      "peakVotesPerMinute": 7650,
+      "startDate": "2026-07-10",
+      "endDate": "2026-07-12"
+    },
+    {
+      "id": "final",
+      "name": "Votação Final - A Grande Final",
+      "totalVotes": 1285000,
+      "peakVotesPerMinute": 16400,
+      "startDate": "2026-07-20",
+      "endDate": "2026-07-25"
+    }
+  ],
+  "topCities": [
+    { "rank": 1, "city": "São Paulo", "uf": "SP", "votes": 784500 },
+    { "rank": 2, "city": "Rio de Janeiro", "uf": "RJ", "votes": 492300 },
+    { "rank": 3, "city": "Belo Horizonte", "uf": "MG", "votes": 315400 },
+    { "rank": 4, "city": "Salvador", "uf": "BA", "votes": 241200 },
+    { "rank": 5, "city": "Curitiba", "uf": "PR", "votes": 198700 },
+    { "rank": 6, "city": "Fortaleza", "uf": "CE", "votes": 182300 },
+    { "rank": 7, "city": "Brasília", "uf": "DF", "votes": 175600 },
+    { "rank": 8, "city": "Porto Alegre", "uf": "RS", "votes": 164200 },
+    { "rank": 9, "city": "Recife", "uf": "PE", "votes": 149800 },
+    { "rank": 10, "city": "Goiânia", "uf": "GO", "votes": 132100 },
+    { "rank": 11, "city": "Belém", "uf": "PA", "votes": 118400 },
+    { "rank": 12, "city": "Campinas", "uf": "SP", "votes": 105900 },
+    { "rank": 13, "city": "Manaus", "uf": "AM", "votes": 98400 },
+    { "rank": 14, "city": "Florianópolis", "uf": "SC", "votes": 89200 },
+    { "rank": 15, "city": "Vitória", "uf": "ES", "votes": 77200 }
+  ],
+  "stateDistribution": [
+    { "uf": "SP", "votes": 1145000, "name": "São Paulo" },
+    { "uf": "RJ", "votes": 598000, "name": "Rio de Janeiro" },
+    { "uf": "MG", "votes": 432000, "name": "Minas Gerais" },
+    { "uf": "BA", "votes": 310000, "name": "Bahia" },
+    { "uf": "PR", "votes": 265000, "name": "Paraná" },
+    { "uf": "RS", "votes": 230000, "name": "Rio Grande do Sul" },
+    { "uf": "CE", "votes": 225000, "name": "Ceará" },
+    { "uf": "DF", "votes": 195000, "name": "Distrito Federal" },
+    { "uf": "PE", "votes": 185000, "name": "Pernambuco" },
+    { "uf": "GO", "votes": 159000, "name": "Goiás" }
+  ],
+  "metrics": {
+    "totalCities": 1482,
+    "totalStates": 27,
+    "uniqueIPs": 2450890
+  }
+}
