@@ -2,22 +2,13 @@
  * Relatório Executivo Geral Consolidado - Gerador de PDF High-End
  * Mansão Influencer 2026
  * 
- * Este script consolida dados de TODAS as etapas da competição:
- * - 1ª Rodada
- * - 2ª Rodada
- * - 3ª Rodada
- * - 4ª Rodada
- * - Votação da Repescagem
- * - Votação Final
- * 
- * Suporta entrada em JSON ou CSV (tanto dados sumarizados quanto registros brutos de voto).
+ * Inclui logos oficiais (Mansão dos Influenciadores + Vortexsync)
  */
 
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// Mapeamento amigável para rótulos das etapas
 const STAGE_NAMES = {
   'rodada_1': '1ª Rodada - Estreia',
   'rodada_2': '2ª Rodada - Classificatória',
@@ -28,8 +19,28 @@ const STAGE_NAMES = {
 };
 
 // ==========================================
-// 1. MÓDULO DE PROCESSAMENTO E CONSOLIDAÇÃO
+// 1. CARREGAMENTO DE LOGOS & DADOS
 // ==========================================
+
+function getBase64Image(filePath) {
+  if (fs.existsSync(filePath)) {
+    const fileBuffer = fs.readFileSync(filePath);
+    return `data:image/png;base64,${fileBuffer.toString('base64')}`;
+  }
+  return null;
+}
+
+function loadLogos() {
+  const mansaoPath = path.join(__dirname, '../public/logo-mansao.png');
+  const mansaoAltPath = path.join(__dirname, '../logo/mansao dos Influenciadores.png');
+  const vortexPath = path.join(__dirname, '../public/logo-vortexsync.png');
+  const vortexAltPath = path.join(__dirname, '../Vortexsync Logo.png');
+
+  return {
+    mansaoLogo: getBase64Image(mansaoPath) || getBase64Image(mansaoAltPath),
+    vortexLogo: getBase64Image(vortexPath) || getBase64Image(vortexAltPath)
+  };
+}
 
 function parseInputData(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -43,14 +54,10 @@ function parseInputData(filePath) {
     return parseCsvLogs(rawContent);
   } else {
     const json = JSON.parse(rawContent);
-    if (Array.isArray(json)) {
-      return aggregateRawLogs(json);
-    }
-    return json;
+    return Array.isArray(json) ? aggregateRawLogs(json) : json;
   }
 }
 
-// Parser simples para CSV de registros de voto: etapa,cidade,uf,ip,timestamp
 function parseCsvLogs(csvContent) {
   const lines = csvContent.split(/\r?\n/).filter(line => line.trim() !== '');
   if (lines.length === 0) return { stages: [] };
@@ -78,14 +85,12 @@ function parseCsvLogs(csvContent) {
   return aggregateRawLogs(rawLogs);
 }
 
-// Processa array de logs brutos e consolida em métricas executivas
 function aggregateRawLogs(logs) {
   const stageMap = {};
   const cityMap = {};
   const stateMap = {};
   const ipSet = new Set();
 
-  // Ordem oficial das etapas
   const stageOrder = ['rodada_1', 'rodada_2', 'rodada_3', 'rodada_4', 'repescagem', 'final'];
   stageOrder.forEach(key => {
     stageMap[key] = { id: key, name: STAGE_NAMES[key] || key, totalVotes: 0, peakVotesPerMinute: 0, minuteBuckets: {} };
@@ -99,27 +104,23 @@ function aggregateRawLogs(logs) {
 
     stageMap[sId].totalVotes += 1;
 
-    // Bucket por minuto para calcular pico de velocidade
     if (log.timestamp) {
       const minKey = log.timestamp.substring(0, 16);
       stageMap[sId].minuteBuckets[minKey] = (stageMap[sId].minuteBuckets[minKey] || 0) + 1;
     }
 
-    // Cidade / UF
     const cityKey = `${log.city || 'Desconhecida'}-${log.uf || 'UF'}`;
     if (!cityMap[cityKey]) {
       cityMap[cityKey] = { city: log.city || 'Desconhecida', uf: log.uf || 'UF', votes: 0 };
     }
     cityMap[cityKey].votes += 1;
 
-    // Estado (UF)
     const ufKey = (log.uf || 'SP').toUpperCase();
     stateMap[ufKey] = (stateMap[ufKey] || 0) + 1;
 
     if (log.ip) ipSet.add(log.ip);
   });
 
-  // Calcular picos por minuto por etapa
   const stages = Object.values(stageMap).map(s => {
     const peaks = Object.values(s.minuteBuckets);
     const maxPeak = peaks.length > 0 ? Math.max(...peaks) : Math.round(s.totalVotes / 60);
@@ -130,13 +131,11 @@ function aggregateRawLogs(logs) {
     };
   });
 
-  // Top Cidades
   const topCities = Object.values(cityMap)
     .sort((a, b) => b.votes - a.votes)
     .slice(0, 15)
     .map((c, idx) => ({ rank: idx + 1, ...c }));
 
-  // Distribuição de Estados
   const stateDistribution = Object.entries(stateMap)
     .map(([uf, votes]) => ({ uf, votes, name: uf }))
     .sort((a, b) => b.votes - a.votes);
@@ -201,13 +200,24 @@ function formatNumber(val) {
 // 2. TEMPLATE HTML HIGH-END DARK MODE
 // ==========================================
 
-function generateHtmlReport(metrics) {
+function generateHtmlReport(metrics, logos) {
   const stageLabels = JSON.stringify(metrics.stages.map(s => s.name.split(' - ')[0]));
   const stageVotes = JSON.stringify(metrics.stages.map(s => s.totalVotes));
   const stagePercentages = JSON.stringify(metrics.stages.map(s => parseFloat(s.percentage)));
 
   const stateLabels = JSON.stringify(metrics.stateDistribution.slice(0, 7).map(s => s.uf));
   const stateVotes = JSON.stringify(metrics.stateDistribution.slice(0, 7).map(s => s.votes));
+
+  const mansaoLogoHtml = logos.mansaoLogo 
+    ? `<img src="${logos.mansaoLogo}" alt="Mansão Logo" class="brand-logo-img" />`
+    : `<div class="brand-logo-icon">M</div>`;
+
+  const vortexLogoHtml = logos.vortexLogo
+    ? `<div class="vortex-badge">
+        <span class="vortex-tag">TECNOLOGIA</span>
+        <img src="${logos.vortexLogo}" alt="Vortexsync Logo" class="vortex-logo-img" />
+       </div>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -236,9 +246,15 @@ function generateHtmlReport(metrics) {
     .page:last-child { page-break-after: avoid; }
 
     .header-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 18px; }
-    .brand-badge { display: flex; align-items: center; gap: 10px; }
-    .brand-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #00E5FF, #8B5CF6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; color: #121214; box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); }
+    .brand-badge { display: flex; align-items: center; gap: 12px; }
+    .brand-logo-img { height: 42px; max-width: 160px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.3)); }
+    .brand-logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #00E5FF, #8B5CF6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; color: #121214; box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); }
     .brand-title { font-size: 15px; font-weight: 800; background: linear-gradient(90deg, #FFFFFF, #94A3B8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    
+    .vortex-badge { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(5px); }
+    .vortex-tag { font-size: 7.5px; color: #00E5FF; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; }
+    .vortex-logo-img { height: 22px; max-width: 120px; object-fit: contain; }
+
     .doc-meta { text-align: right; font-size: 9px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; }
     .doc-tag { display: inline-block; padding: 3px 8px; background: rgba(0, 229, 255, 0.1); border: 1px solid rgba(0, 229, 255, 0.3); color: #00E5FF; border-radius: 20px; font-weight: 700; font-size: 8px; margin-bottom: 3px; }
 
@@ -295,15 +311,18 @@ function generateHtmlReport(metrics) {
   <div class="page">
     <div class="header-bar">
       <div class="brand-badge">
-        <div class="brand-logo-icon">M</div>
+        ${mansaoLogoHtml}
         <div>
           <div class="brand-title">${metrics.competition.name}</div>
           <div style="font-size: 8px; color: #94A3B8;">${metrics.competition.edition}</div>
         </div>
       </div>
-      <div class="doc-meta">
-        <div class="doc-tag">Relatório Comercial</div>
-        <div>Gerado em: ${new Date().toLocaleDateString('pt-BR')}</div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        ${vortexLogoHtml}
+        <div class="doc-meta">
+          <div class="doc-tag">Relatório Comercial</div>
+          <div>Gerado em: ${new Date().toLocaleDateString('pt-BR')}</div>
+        </div>
       </div>
     </div>
 
@@ -395,11 +414,14 @@ function generateHtmlReport(metrics) {
   <div class="page">
     <div class="header-bar">
       <div class="brand-badge">
-        <div class="brand-logo-icon">M</div>
+        ${mansaoLogoHtml}
         <div class="brand-title">${metrics.competition.name}</div>
       </div>
-      <div class="doc-meta">
-        <div>Consolidação Geográfica (Acumulado Global)</div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        ${vortexLogoHtml}
+        <div class="doc-meta">
+          <div>Consolidação Geográfica</div>
+        </div>
       </div>
     </div>
 
@@ -464,11 +486,14 @@ function generateHtmlReport(metrics) {
   <div class="page">
     <div class="header-bar">
       <div class="brand-badge">
-        <div class="brand-logo-icon">M</div>
+        ${mansaoLogoHtml}
         <div class="brand-title">${metrics.competition.name}</div>
       </div>
-      <div class="doc-meta">
-        <div>Conclusão & Impacto Comercial</div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        ${vortexLogoHtml}
+        <div class="doc-meta">
+          <div>Impacto Comercial & Patrocínio</div>
+        </div>
       </div>
     </div>
 
@@ -528,7 +553,7 @@ function generateHtmlReport(metrics) {
         Relatório Homologado para Apresentação Comercial
       </div>
       <div style="font-size: 9px; color: #94A3B8;">
-        Dados verificados e auditados pelo sistema de engajamento do projeto
+        Desenvolvido com Tecnologia Vortexsync & Core Engine de Votação
       </div>
     </div>
 
@@ -638,18 +663,23 @@ async function generatePdfReport(inputPath, outputPath) {
   console.log(`📊 GERADOR DE RELATÓRIO EXECUTIVO HIGH-END (PDF)`);
   console.log(`==================================================`);
   
-  console.log(`[1/3] Lendo e consolidando arquivo de entrada: ${inputPath}`);
+  console.log(`[1/4] Carregando logotipos oficiais (Mansão & Vortexsync)...`);
+  const logos = loadLogos();
+  console.log(`      ✓ Logo Mansão: ${logos.mansaoLogo ? 'Carregada com sucesso' : 'Não encontrada'}`);
+  console.log(`      ✓ Logo Vortexsync: ${logos.vortexLogo ? 'Carregada com sucesso' : 'Não encontrada'}`);
+
+  console.log(`[2/4] Lendo e consolidando arquivo de entrada: ${inputPath}`);
   const rawData = parseInputData(inputPath);
   const metrics = processMetrics(rawData);
   console.log(`      ✓ Consolidado: ${formatNumber(metrics.totalVotes)} Votos totais em ${metrics.stages.length} etapas.`);
 
-  console.log(`[2/3] Renderizando Template HTML High-End (Dark/Neon)...`);
-  const htmlContent = generateHtmlReport(metrics);
+  console.log(`[3/4] Renderizando Template HTML High-End com Logotipos...`);
+  const htmlContent = generateHtmlReport(metrics, logos);
   
   const tempHtmlPath = path.join(__dirname, '../temp_report.html');
   fs.writeFileSync(tempHtmlPath, htmlContent, 'utf-8');
 
-  console.log(`[3/3] Exportando PDF em alta definição via Headless Engine...`);
+  console.log(`[4/4] Exportando PDF em alta definição via Headless Engine...`);
   
   const edgePath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
   const absHtmlPath = path.resolve(tempHtmlPath);
@@ -669,7 +699,7 @@ async function generatePdfReport(inputPath, outputPath) {
       fs.unlinkSync(tempHtmlPath);
     }
 
-    console.log(`\n✅ SUCESSO! Relatório PDF gerado com sucesso:`);
+    console.log(`\n✅ SUCESSO! Relatório PDF gerado com logotipos oficiais:`);
     console.log(`📍 ${absPdfPath}\n`);
   } catch (err) {
     console.error(`❌ Erro ao exportar PDF:`, err.message);
