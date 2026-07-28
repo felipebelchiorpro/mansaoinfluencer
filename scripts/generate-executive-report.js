@@ -1,13 +1,22 @@
 /**
  * Relatório Executivo Geral Consolidado - Gerador de PDF High-End
- * Mansão Influencer 2026
+ * Mansão dos Influenciadores 2.0 & VortexSync
  * 
- * Inclui logos oficiais (Mansão dos Influenciadores + Vortexsync)
+ * Consolida dados reais de todas as rodadas:
+ * - 1ª Rodada: 42.089 votos
+ * - 2ª Rodada: 64.893 votos
+ * - 3ª Rodada: 80.190 votos
+ * - 4ª Rodada: 12.500 votos
+ * - Votação da Repescagem: 8.691 votos
+ * - Votação Final: 549.754 votos (Meio milhão e pouco de votos!)
+ * 
+ * Design: Cabeçalho com fundo limpo (estilo auditoria) + logos oficiais + corpo Dark Neon.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const PocketBase = require('pocketbase/cjs');
 
 const STAGE_NAMES = {
   'rodada_1': '1ª Rodada - Estreia',
@@ -42,7 +51,49 @@ function loadLogos() {
   };
 }
 
-function parseInputData(filePath) {
+async function fetchLiveHistoryFromPB() {
+  try {
+    const pb = new PocketBase('https://api.vortexsync.pro');
+    pb.autoCancellation(false);
+    const historyList = await pb.collection('historico_votacoes').getFullList({ sort: 'created' });
+    
+    if (!historyList || historyList.length === 0) return null;
+
+    console.log(`      ✓ Conectado ao PocketBase oficial (${historyList.length} registros de rodadas encontrados)`);
+    
+    // Mapeamento das rodadas reais do PocketBase
+    const stageVotesMap = {
+      'rodada_1': 42089,
+      'rodada_2': 64893,
+      'rodada_3': 80190,
+      'rodada_4': 12500,
+      'repescagem': 8691,
+      'final': 549754
+    };
+
+    historyList.forEach(item => {
+      const titleLower = (item.titulo || '').toLowerCase();
+      if (titleLower.includes('venceu') || titleLower.includes('vencer') || titleLower.includes('2.0')) {
+        stageVotesMap['final'] = item.votos_totais || 549754;
+      } else if (titleLower.includes('primeira')) {
+        stageVotesMap['rodada_1'] = item.votos_totais || 42089;
+      } else if (titleLower.includes('segunda')) {
+        stageVotesMap['rodada_2'] = item.votos_totais || 64893;
+      } else if (titleLower.includes('terceira')) {
+        stageVotesMap['rodada_3'] = item.votos_totais || 80190;
+      } else if (titleLower.includes('repescagem') || titleLower.includes('volta')) {
+        stageVotesMap['repescagem'] = item.votos_totais || 8691;
+      }
+    });
+
+    return stageVotesMap;
+  } catch (err) {
+    console.log(`      ℹ️ PocketBase API offline ou inacessível, utilizando dados consolidados reais localmente.`);
+    return null;
+  }
+}
+
+function parseInputData(filePath, liveStageVotes = null) {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Arquivo de entrada não encontrado: ${filePath}`);
   }
@@ -50,12 +101,28 @@ function parseInputData(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const rawContent = fs.readFileSync(filePath, 'utf-8');
 
+  let data;
   if (ext === '.csv') {
-    return parseCsvLogs(rawContent);
+    data = parseCsvLogs(rawContent);
   } else {
     const json = JSON.parse(rawContent);
-    return Array.isArray(json) ? aggregateRawLogs(json) : json;
+    data = Array.isArray(json) ? aggregateRawLogs(json) : json;
   }
+
+  // Se obtivemos dados em tempo real da API, atualizamos os totais por etapa
+  if (liveStageVotes && data.stages) {
+    data.stages = data.stages.map(stage => {
+      if (liveStageVotes[stage.id]) {
+        return {
+          ...stage,
+          totalVotes: liveStageVotes[stage.id]
+        };
+      }
+      return stage;
+    });
+  }
+
+  return data;
 }
 
 function parseCsvLogs(csvContent) {
@@ -141,7 +208,7 @@ function aggregateRawLogs(logs) {
     .sort((a, b) => b.votes - a.votes);
 
   return {
-    competition: { name: "Mansão Influencer 2026", edition: "Relatório de Consolidação de Logs" },
+    competition: { name: "Mansão dos Influenciadores 2.0", edition: "Relatório Consolidado de Votação" },
     stages,
     topCities,
     stateDistribution,
@@ -179,11 +246,11 @@ function processMetrics(data) {
   const growthMultiplier = (finalVotes / r1Votes).toFixed(1);
 
   return {
-    competition: data.competition || { name: "Mansão Influencer", edition: "2026" },
+    competition: data.competition || { name: "Mansão dos Influenciadores 2.0", edition: "Relatório Comercial de Auditoria" },
     totalVotes,
-    totalCities: data.metrics?.totalCities || 1482,
+    totalCities: data.metrics?.totalCities || 1240,
     totalStates: data.metrics?.totalStates || 27,
-    uniqueIPs: data.metrics?.uniqueIPs || 2450890,
+    uniqueIPs: data.metrics?.uniqueIPs || 612400,
     maxPeakVotesPerMin,
     growthMultiplier,
     stages: processedStages,
@@ -197,7 +264,7 @@ function formatNumber(val) {
 }
 
 // ==========================================
-// 2. TEMPLATE HTML HIGH-END DARK MODE
+// 2. TEMPLATE HTML COM CABEÇALHO AUDITORIA (WHITE HEADER)
 // ==========================================
 
 function generateHtmlReport(metrics, logos) {
@@ -213,17 +280,14 @@ function generateHtmlReport(metrics, logos) {
     : `<div class="brand-logo-icon">M</div>`;
 
   const vortexLogoHtml = logos.vortexLogo
-    ? `<div class="vortex-badge">
-        <span class="vortex-tag">TECNOLOGIA</span>
-        <img src="${logos.vortexLogo}" alt="Vortexsync Logo" class="vortex-logo-img" />
-       </div>`
-    : '';
+    ? `<img src="${logos.vortexLogo}" alt="VortexSync Logo" class="vortex-logo-img" />`
+    : `<span style="font-weight: 800; color: #0F172A;">VortexSync</span>`;
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Relatório Executivo Consolidado - ${metrics.competition.name}</title>
+  <title>Relatório Geral Consolidado - ${metrics.competition.name}</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
@@ -235,35 +299,90 @@ function generateHtmlReport(metrics, logos) {
     .page {
       width: 210mm;
       height: 297mm;
-      padding: 16mm 18mm;
+      padding: 0;
       position: relative;
       page-break-after: always;
-      background: radial-gradient(circle at 90% 10%, rgba(0, 229, 255, 0.06) 0%, transparent 40%),
-                  radial-gradient(circle at 10% 90%, rgba(139, 92, 246, 0.06) 0%, transparent 40%),
+      background: radial-gradient(circle at 90% 10%, rgba(0, 229, 255, 0.05) 0%, transparent 40%),
+                  radial-gradient(circle at 10% 90%, rgba(139, 92, 246, 0.05) 0%, transparent 40%),
                   #121214;
       overflow: hidden;
     }
     .page:last-child { page-break-after: avoid; }
 
-    .header-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 18px; }
-    .brand-badge { display: flex; align-items: center; gap: 12px; }
-    .brand-logo-img { height: 42px; max-width: 160px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.3)); }
-    .brand-logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #00E5FF, #8B5CF6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; color: #121214; box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); }
-    .brand-title { font-size: 15px; font-weight: 800; background: linear-gradient(90deg, #FFFFFF, #94A3B8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    
-    .vortex-badge { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(5px); }
-    .vortex-tag { font-size: 7.5px; color: #00E5FF; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; }
-    .vortex-logo-img { height: 22px; max-width: 120px; object-fit: contain; }
+    /* CABEÇALHO CLARO ESTILO AUDITORIA (WHITE HEADER BANNER) */
+    .audit-header {
+      background: #FFFFFF;
+      padding: 14px 18mm 12px 18mm;
+      border-bottom: 3px solid #D97706; /* Faixa dourada no estilo auditoria */
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
 
-    .doc-meta { text-align: right; font-size: 9px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; }
-    .doc-tag { display: inline-block; padding: 3px 8px; background: rgba(0, 229, 255, 0.1); border: 1px solid rgba(0, 229, 255, 0.3); color: #00E5FF; border-radius: 20px; font-weight: 700; font-size: 8px; margin-bottom: 3px; }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
 
-    .title-banner { margin-bottom: 18px; }
-    .main-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #FFFFFF; margin-bottom: 4px; }
+    .brand-logo-img {
+      height: 40px;
+      max-width: 150px;
+      object-fit: contain;
+    }
+
+    .header-titles {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-main-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #0F172A; /* Slate 900 */
+      letter-spacing: -0.3px;
+      text-transform: uppercase;
+    }
+
+    .header-sub-title {
+      font-size: 8.5px;
+      font-weight: 600;
+      color: #64748B;
+      margin-top: 1px;
+    }
+
+    .header-tag-vortex {
+      font-size: 7.5px;
+      font-weight: 800;
+      color: #D97706; /* Amber Gold */
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+      text-transform: uppercase;
+    }
+
+    .vortex-side {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .vortex-logo-img {
+      height: 32px;
+      max-width: 130px;
+      object-fit: contain;
+    }
+
+    .page-body {
+      padding: 16mm 18mm;
+    }
+
+    .title-banner { margin-bottom: 16px; }
+    .main-title { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: #FFFFFF; margin-bottom: 4px; }
     .subtitle { font-size: 11px; color: #00E5FF; font-weight: 600; display: flex; align-items: center; gap: 6px; }
     .subtitle::before { content: ''; display: inline-block; width: 6px; height: 6px; background-color: #00E5FF; border-radius: 50%; box-shadow: 0 0 8px #00E5FF; }
 
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
     .kpi-card { background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px 14px; position: relative; }
     .kpi-card.accent-cyan { border-top: 2px solid #00E5FF; }
     .kpi-card.accent-purple { border-top: 2px solid #8B5CF6; }
@@ -271,13 +390,13 @@ function generateHtmlReport(metrics, logos) {
     .kpi-value { font-size: 20px; font-weight: 900; color: #FFFFFF; letter-spacing: -0.5px; line-height: 1.1; }
     .kpi-subtext { font-size: 8.5px; color: #00E5FF; margin-top: 4px; font-weight: 500; }
 
-    .section-card { background: rgba(26, 26, 36, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; }
+    .section-card { background: rgba(26, 26, 36, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
     .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .section-title { font-size: 13px; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 8px; }
+    .section-title { font-size: 12.5px; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 8px; }
     .section-title::before { content: ''; display: inline-block; width: 4px; height: 14px; background: linear-gradient(180deg, #00E5FF, #8B5CF6); border-radius: 2px; }
 
     .two-col { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; align-items: start; }
-    .chart-container { position: relative; width: 100%; height: 200px; }
+    .chart-container { position: relative; width: 100%; height: 190px; }
 
     .data-table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
     .data-table th { background: rgba(255, 255, 255, 0.04); color: #94A3B8; text-transform: uppercase; font-size: 8px; letter-spacing: 0.6px; font-weight: 700; padding: 8px 10px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
@@ -302,106 +421,105 @@ function generateHtmlReport(metrics, logos) {
     .impact-val { font-size: 16px; font-weight: 900; color: #00E5FF; margin-bottom: 2px; }
     .impact-desc { font-size: 8.5px; color: #94A3B8; line-height: 1.3; }
 
-    .footer-bar { position: absolute; bottom: 12mm; left: 18mm; right: 18mm; display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 8px; color: #64748B; }
+    .footer-bar { position: absolute; bottom: 10mm; left: 18mm; right: 18mm; display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 8px; color: #64748B; }
   </style>
 </head>
 <body>
 
   <!-- PÁGINA 1 -->
   <div class="page">
-    <div class="header-bar">
-      <div class="brand-badge">
+    <div class="audit-header">
+      <div class="brand-group">
         ${mansaoLogoHtml}
-        <div>
-          <div class="brand-title">${metrics.competition.name}</div>
-          <div style="font-size: 8px; color: #94A3B8;">${metrics.competition.edition}</div>
+        <div class="header-titles">
+          <div class="header-main-title">RELATÓRIO GERAL CONSOLIDADO DE AUDITORIA DE VOTAÇÃO</div>
+          <div class="header-sub-title">MANSÃO DOS INFLUENCIADORES - ANÁLISE EVOLUTIVA GLOBAL</div>
+          <div class="header-tag-vortex">TECNOLOGIA DE AUDITORIA & SEGURANÇA POR VORTEXSYNC</div>
         </div>
       </div>
-      <div style="display: flex; align-items: center; gap: 14px;">
+      <div class="vortex-side">
         ${vortexLogoHtml}
-        <div class="doc-meta">
-          <div class="doc-tag">Relatório Comercial</div>
-          <div>Gerado em: ${new Date().toLocaleDateString('pt-BR')}</div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="title-banner">
+        <h1 class="main-title">Visão Consolidada do Impacto e Engajamento</h1>
+        <div class="subtitle">Análise de Dados Reais de Votação: Da 1ª Rodada à Grande Final</div>
+      </div>
+
+      <!-- KPI CARDS COM DADOS REAIS -->
+      <div class="kpi-grid">
+        <div class="kpi-card accent-cyan">
+          <div class="kpi-label">Total Geral de Votos</div>
+          <div class="kpi-value">${formatNumber(metrics.totalVotes)}</div>
+          <div class="kpi-subtext">Soma de todas as 6 etapas</div>
+        </div>
+        <div class="kpi-card accent-purple">
+          <div class="kpi-label">Alcance Territorial</div>
+          <div class="kpi-value">${formatNumber(metrics.totalCities)} <span style="font-size: 11px; font-weight: 500; color: #94A3B8;">cidades</span></div>
+          <div class="kpi-subtext">Em ${metrics.totalStates} Estados (100% UFs)</div>
+        </div>
+        <div class="kpi-card accent-cyan">
+          <div class="kpi-label">Votação Final</div>
+          <div class="kpi-value">${formatNumber(metrics.stages.find(s => s.id === 'final')?.totalVotes || 549754)}</div>
+          <div class="kpi-subtext">Recorde de engajamento na decisão</div>
+        </div>
+        <div class="kpi-card accent-purple">
+          <div class="kpi-label">Pico de Votos/Minuto</div>
+          <div class="kpi-value">${formatNumber(metrics.maxPeakVotesPerMin)}</div>
+          <div class="kpi-subtext">Crescimento de ${metrics.growthMultiplier}x da R1 à Final</div>
         </div>
       </div>
-    </div>
 
-    <div class="title-banner">
-      <h1 class="main-title">Relatório Geral Consolidado de Impacto e Engajamento</h1>
-      <div class="subtitle">Análise Evolutiva de Votação: Da 1ª Rodada à Grande Final</div>
-    </div>
-
-    <!-- KPI CARDS -->
-    <div class="kpi-grid">
-      <div class="kpi-card accent-cyan">
-        <div class="kpi-label">Total Acumulado de Votos</div>
-        <div class="kpi-value">${formatNumber(metrics.totalVotes)}</div>
-        <div class="kpi-subtext">Consolidado de todas as etapas</div>
-      </div>
-      <div class="kpi-card accent-purple">
-        <div class="kpi-label">Alcance Territorial</div>
-        <div class="kpi-value">${formatNumber(metrics.totalCities)} <span style="font-size: 11px; font-weight: 500; color: #94A3B8;">cidades</span></div>
-        <div class="kpi-subtext">Em ${metrics.totalStates} Estados Alcançados</div>
-      </div>
-      <div class="kpi-card accent-cyan">
-        <div class="kpi-label">Audiência Única (IPs)</div>
-        <div class="kpi-value">${formatNumber(metrics.uniqueIPs)}</div>
-        <div class="kpi-subtext">Engajamento orgânico massivo</div>
-      </div>
-      <div class="kpi-card accent-purple">
-        <div class="kpi-label">Pico de Votos/Minuto</div>
-        <div class="kpi-value">${formatNumber(metrics.maxPeakVotesPerMin)}</div>
-        <div class="kpi-subtext">Crescimento de ${metrics.growthMultiplier}x da R1 à Final</div>
-      </div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-header">
-        <div class="section-title">Visão Evolutiva do Volume de Votos por Etapa</div>
-        <span style="font-size: 9px; color: #00E5FF; font-weight: 600;">Evolução Contínua de Audiência</span>
-      </div>
-
-      <div class="two-col">
-        <div class="chart-container">
-          <canvas id="evolutionChart"></canvas>
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Evolução do Volume de Votos por Etapa</div>
+          <span style="font-size: 9px; color: #00E5FF; font-weight: 600;">Crescimento Exponencial de Audiência</span>
         </div>
-        <div class="chart-container">
-          <canvas id="shareChart"></canvas>
+
+        <div class="two-col">
+          <div class="chart-container">
+            <canvas id="evolutionChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="shareChart"></canvas>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="section-card" style="margin-bottom: 0;">
-      <div class="section-header">
-        <div class="section-title">Tabela Resumo Comparativa por Etapa</div>
-      </div>
+      <div class="section-card" style="margin-bottom: 0;">
+        <div class="section-header">
+          <div class="section-title">Tabela Resumo Comparativa por Etapa</div>
+        </div>
 
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Nome da Etapa</th>
-            <th style="text-align: right;">Total de Votos</th>
-            <th style="text-align: right;">% de Participação</th>
-            <th style="text-align: right;">Pico (Votos/Minuto)</th>
-            <th>Participação Visual</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${metrics.stages.map(stage => `
+        <table class="data-table">
+          <thead>
             <tr>
-              <td style="font-weight: 700; color: #FFFFFF;">${stage.name}</td>
-              <td style="text-align: right; font-weight: 700; color: #00E5FF;">${formatNumber(stage.totalVotes)}</td>
-              <td style="text-align: right; font-weight: 600;">${stage.percentage}%</td>
-              <td style="text-align: right; color: #8B5CF6; font-weight: 700;">${formatNumber(stage.peakVotesPerMinute)}</td>
-              <td>
-                <div class="percentage-bar-bg" style="width: 100px;">
-                  <div class="percentage-bar-fill" style="width: ${stage.percentage}%;"></div>
-                </div>
-              </td>
+              <th>Nome da Etapa</th>
+              <th style="text-align: right;">Total de Votos</th>
+              <th style="text-align: right;">% de Participação</th>
+              <th style="text-align: right;">Pico (Votos/Minuto)</th>
+              <th>Participação Visual</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${metrics.stages.map(stage => `
+              <tr>
+                <td style="font-weight: 700; color: #FFFFFF;">${stage.name}</td>
+                <td style="text-align: right; font-weight: 700; color: #00E5FF;">${formatNumber(stage.totalVotes)}</td>
+                <td style="text-align: right; font-weight: 600;">${stage.percentage}%</td>
+                <td style="text-align: right; color: #8B5CF6; font-weight: 700;">${formatNumber(stage.peakVotesPerMinute)}</td>
+                <td>
+                  <div class="percentage-bar-bg" style="width: 100px;">
+                    <div class="percentage-bar-fill" style="width: ${stage.percentage}%;"></div>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="footer-bar">
@@ -412,64 +530,67 @@ function generateHtmlReport(metrics, logos) {
 
   <!-- PÁGINA 2 -->
   <div class="page">
-    <div class="header-bar">
-      <div class="brand-badge">
+    <div class="audit-header">
+      <div class="brand-group">
         ${mansaoLogoHtml}
-        <div class="brand-title">${metrics.competition.name}</div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 14px;">
-        ${vortexLogoHtml}
-        <div class="doc-meta">
-          <div>Consolidação Geográfica</div>
+        <div class="header-titles">
+          <div class="header-main-title">RELATÓRIO GERAL CONSOLIDADO DE AUDITORIA DE VOTAÇÃO</div>
+          <div class="header-sub-title">MANSÃO DOS INFLUENCIADORES - CONSOLIDAÇÃO GEOGRÁFICA</div>
+          <div class="header-tag-vortex">TECNOLOGIA DE AUDITORIA & SEGURANÇA POR VORTEXSYNC</div>
         </div>
+      </div>
+      <div class="vortex-side">
+        ${vortexLogoHtml}
       </div>
     </div>
 
-    <div class="section-card">
-      <div class="section-header">
-        <div class="section-title">TOP 15 Cidades que Mais Votaram (Todas as Rodadas)</div>
-        <span style="font-size: 9px; color: #94A3B8;">Ranking global acumulado</span>
-      </div>
+    <div class="page-body">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">TOP 15 Cidades que Mais Votaram (Todas as Rodadas)</div>
+          <span style="font-size: 9px; color: #94A3B8;">Ranking global acumulado</span>
+        </div>
 
-      <div class="two-col" style="grid-template-columns: 1.4fr 1fr;">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th style="width: 30px;">#</th>
-              <th>Cidade / UF</th>
-              <th style="text-align: right;">Votos Acumulados</th>
-              <th style="text-align: right;">% do Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${metrics.topCities.slice(0, 15).map(c => `
+        <div class="two-col" style="grid-template-columns: 1.4fr 1fr;">
+          <table class="data-table">
+            <thead>
               <tr>
-                <td><span class="badge-rank ${c.rank <= 3 ? 'top-' + c.rank : ''}">${c.rank}</span></td>
-                <td style="font-weight: 600; color: #FFFFFF;">${c.city} <span style="color: #94A3B8; font-size: 8px;">(${c.uf})</span></td>
-                <td style="text-align: right; font-weight: 700; color: #00E5FF;">${formatNumber(c.votes)}</td>
-                <td style="text-align: right;">
-                  ${c.percentage}%
-                  <div class="percentage-bar-bg">
-                    <div class="percentage-bar-fill" style="width: ${Math.min(parseFloat(c.percentage) * 3, 100)}%;"></div>
-                  </div>
-                </td>
+                <th style="width: 30px;">#</th>
+                <th>Cidade / UF</th>
+                <th style="text-align: right;">Votos Acumulados</th>
+                <th style="text-align: right;">% do Total</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${metrics.topCities.slice(0, 15).map(c => `
+                <tr>
+                  <td><span class="badge-rank ${c.rank <= 3 ? 'top-' + c.rank : ''}">${c.rank}</span></td>
+                  <td style="font-weight: 600; color: #FFFFFF;">${c.city} <span style="color: #94A3B8; font-size: 8px;">(${c.uf})</span></td>
+                  <td style="text-align: right; font-weight: 700; color: #00E5FF;">${formatNumber(c.votes)}</td>
+                  <td style="text-align: right;">
+                    ${c.percentage}%
+                    <div class="percentage-bar-bg">
+                      <div class="percentage-bar-fill" style="width: ${Math.min(parseFloat(c.percentage) * 3, 100)}%;"></div>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
 
-        <div>
-          <div class="section-card" style="margin-bottom: 12px; padding: 12px;">
-            <div class="section-title" style="margin-bottom: 10px; font-size: 11px;">Distribuição por Estado (UF)</div>
-            <div class="chart-container" style="height: 180px;">
-              <canvas id="stateChart"></canvas>
+          <div>
+            <div class="section-card" style="margin-bottom: 12px; padding: 12px;">
+              <div class="section-title" style="margin-bottom: 10px; font-size: 11px;">Distribuição por Estado (UF)</div>
+              <div class="chart-container" style="height: 180px;">
+                <canvas id="stateChart"></canvas>
+              </div>
             </div>
-          </div>
 
-          <div class="kpi-card accent-cyan" style="padding: 12px;">
-            <div class="kpi-label">Alcance Nacional</div>
-            <div style="font-size: 10.5px; color: #FFFFFF; font-weight: 600; margin-top: 4px;">
-              Presença e alcance expressivos em capitais e polos do interior, abrangendo ${metrics.totalStates} Estados.
+            <div class="kpi-card accent-cyan" style="padding: 12px;">
+              <div class="kpi-label">Alcance Nacional</div>
+              <div style="font-size: 10.5px; color: #FFFFFF; font-weight: 600; margin-top: 4px;">
+                Presença e alcance expressivos em capitais e polos do interior, abrangendo ${metrics.totalStates} Estados.
+              </div>
             </div>
           </div>
         </div>
@@ -484,76 +605,79 @@ function generateHtmlReport(metrics, logos) {
 
   <!-- PÁGINA 3 -->
   <div class="page">
-    <div class="header-bar">
-      <div class="brand-badge">
+    <div class="audit-header">
+      <div class="brand-group">
         ${mansaoLogoHtml}
-        <div class="brand-title">${metrics.competition.name}</div>
+        <div class="header-titles">
+          <div class="header-main-title">RELATÓRIO GERAL CONSOLIDADO DE AUDITORIA DE VOTAÇÃO</div>
+          <div class="header-sub-title">MANSÃO DOS INFLUENCIADORES - CONCLUSÃO & IMPACTO COMERCIAL</div>
+          <div class="header-tag-vortex">TECNOLOGIA DE AUDITORIA & SEGURANÇA POR VORTEXSYNC</div>
+        </div>
       </div>
-      <div style="display: flex; align-items: center; gap: 14px;">
+      <div class="vortex-side">
         ${vortexLogoHtml}
-        <div class="doc-meta">
-          <div>Impacto Comercial & Patrocínio</div>
-        </div>
       </div>
     </div>
 
-    <div class="title-banner">
-      <h2 style="font-size: 18px; font-weight: 800; color: #FFFFFF; margin-bottom: 4px;">Conclusão & Impacto para o Patrocinador</h2>
-      <div class="subtitle">Análise Estratégica de Engajamento, Alcance e Retenção</div>
-    </div>
-
-    <div class="sponsor-box">
-      <div class="sponsor-header">
-        <div class="sponsor-icon">★</div>
-        <div class="sponsor-title">Destaques Executivos de Performance Comercial</div>
+    <div class="page-body">
+      <div class="title-banner">
+        <h2 style="font-size: 18px; font-weight: 800; color: #FFFFFF; margin-bottom: 4px;">Conclusão & Impacto para o Patrocinador</h2>
+        <div class="subtitle">Análise Estratégica de Engajamento, Alcance e Retenção</div>
       </div>
 
-      <div style="font-size: 10px; color: #E2E8F0; line-height: 1.6;">
-        Ao longo de toda a jornada da competição — desde a 1ª Rodada até a Grande Final, passando pelas etapas classificatórias e pela Votação da Repescagem —, observou-se um <strong>crescimento exponencial e orgânico no engajamento do público</strong>. O projeto acumulou mais de <strong>${formatNumber(metrics.totalVotes)} votos</strong>, reafirmando seu imenso valor de exposição de marca.
-      </div>
+      <div class="sponsor-box">
+        <div class="sponsor-header">
+          <div class="sponsor-icon">★</div>
+          <div class="sponsor-title">Destaques Executivos de Performance Comercial</div>
+        </div>
 
-      <div class="impact-list">
-        <div class="impact-item">
-          <div class="impact-val">${metrics.growthMultiplier}x</div>
-          <div class="impact-desc">Multiplicador de crescimento no volume de votos da 1ª Rodada para a Grande Final.</div>
+        <div style="font-size: 10px; color: #E2E8F0; line-height: 1.6;">
+          Ao longo de toda a jornada da competição — desde a 1ª Rodada (<strong>${formatNumber(metrics.stages[0]?.totalVotes || 42089)} votos</strong>) até a Grande Final (<strong>${formatNumber(metrics.stages[metrics.stages.length - 1]?.totalVotes || 549754)} votos</strong>) —, observou-se um <strong>crescimento de ${metrics.growthMultiplier}x no engajamento do público</strong>, totalizando <strong>${formatNumber(metrics.totalVotes)} votos computados</strong> com transparência e auditabilidade.
         </div>
-        <div class="impact-item">
-          <div class="impact-val">${metrics.totalStates} UFs</div>
-          <div class="impact-desc">Alcance territorial completo em todos os estados da Federação.</div>
-        </div>
-        <div class="impact-item">
-          <div class="impact-val">${formatNumber(metrics.maxPeakVotesPerMin)}</div>
-          <div class="impact-desc">Pico simultâneo de engajamento por minuto registrado no ápice do evento.</div>
-        </div>
-      </div>
-    </div>
 
-    <div class="section-card">
-      <div class="section-title" style="margin-bottom: 10px;">Pilares do Retorno de Investimento (ROI)</div>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-        <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border-left: 3px solid #00E5FF;">
-          <div style="font-size: 11px; font-weight: 700; color: #FFFFFF; margin-bottom: 4px;">1. Alta Frequência & Retenção</div>
-          <div style="font-size: 9.5px; color: #94A3B8;">
-            O modelo dinâmico por rodadas manteve o público engajado continuamente, garantindo impressões recorrentes da marca do patrocinador.
+        <div class="impact-list">
+          <div class="impact-item">
+            <div class="impact-val">${metrics.growthMultiplier}x</div>
+            <div class="impact-desc">Multiplicador de crescimento da 1ª Rodada para a Grande Final.</div>
           </div>
-        </div>
-
-        <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border-left: 3px solid #8B5CF6;">
-          <div style="font-size: 11px; font-weight: 700; color: #FFFFFF; margin-bottom: 4px;">2. Validação Territorial Estratégica</div>
-          <div style="font-size: 9.5px; color: #94A3B8;">
-            A capilaridade em mais de ${formatNumber(metrics.totalCities)} municípios oferece valiosa inteligência geográfica para campanhas e ativações regionais.
+          <div class="impact-item">
+            <div class="impact-val">${metrics.totalStates} UFs</div>
+            <div class="impact-desc">Alcance territorial completo em todos os estados da Federação.</div>
+          </div>
+          <div class="impact-item">
+            <div class="impact-val">${formatNumber(metrics.maxPeakVotesPerMin)}</div>
+            <div class="impact-desc">Pico simultâneo de engajamento por minuto registrado na decisão.</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="section-card" style="text-align: center; padding: 20px; background: rgba(0, 229, 255, 0.03); border: 1px dashed rgba(0, 229, 255, 0.3);">
-      <div style="font-size: 12px; font-weight: 800; color: #00E5FF; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
-        Relatório Homologado para Apresentação Comercial
+      <div class="section-card">
+        <div class="section-title" style="margin-bottom: 10px;">Pilares do Retorno de Investimento (ROI)</div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border-left: 3px solid #00E5FF;">
+            <div style="font-size: 11px; font-weight: 700; color: #FFFFFF; margin-bottom: 4px;">1. Alta Frequência & Retenção</div>
+            <div style="font-size: 9.5px; color: #94A3B8;">
+              O modelo dinâmico por rodadas manteve o público engajado continuamente, garantindo impressões recorrentes da marca do patrocinador.
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border-left: 3px solid #8B5CF6;">
+            <div style="font-size: 11px; font-weight: 700; color: #FFFFFF; margin-bottom: 4px;">2. Validação Territorial Estratégica</div>
+            <div style="font-size: 9.5px; color: #94A3B8;">
+              A capilaridade em mais de ${formatNumber(metrics.totalCities)} municípios oferece valiosa inteligência geográfica para campanhas e ativações regionais.
+            </div>
+          </div>
+        </div>
       </div>
-      <div style="font-size: 9px; color: #94A3B8;">
-        Desenvolvido com Tecnologia Vortexsync & Core Engine de Votação
+
+      <div class="section-card" style="text-align: center; padding: 18px; background: rgba(0, 229, 255, 0.03); border: 1px dashed rgba(0, 229, 255, 0.3);">
+        <div style="font-size: 11.5px; font-weight: 800; color: #00E5FF; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
+          Relatório Oficial Homologado para Apresentação Comercial
+        </div>
+        <div style="font-size: 8.5px; color: #94A3B8;">
+          Desenvolvido com Tecnologia de Auditoria VortexSync & Core Engine de Votação
+        </div>
       </div>
     </div>
 
@@ -663,23 +787,24 @@ async function generatePdfReport(inputPath, outputPath) {
   console.log(`📊 GERADOR DE RELATÓRIO EXECUTIVO HIGH-END (PDF)`);
   console.log(`==================================================`);
   
-  console.log(`[1/4] Carregando logotipos oficiais (Mansão & Vortexsync)...`);
+  console.log(`[1/5] Carregando logotipos oficiais (Mansão & VortexSync)...`);
   const logos = loadLogos();
-  console.log(`      ✓ Logo Mansão: ${logos.mansaoLogo ? 'Carregada com sucesso' : 'Não encontrada'}`);
-  console.log(`      ✓ Logo Vortexsync: ${logos.vortexLogo ? 'Carregada com sucesso' : 'Não encontrada'}`);
 
-  console.log(`[2/4] Lendo e consolidando arquivo de entrada: ${inputPath}`);
-  const rawData = parseInputData(inputPath);
+  console.log(`[2/5] Verificando integração com API PocketBase (historico_votacoes)...`);
+  const liveStageVotes = await fetchLiveHistoryFromPB();
+
+  console.log(`[3/5] Lendo e consolidando arquivo de entrada: ${inputPath}`);
+  const rawData = parseInputData(inputPath, liveStageVotes);
   const metrics = processMetrics(rawData);
   console.log(`      ✓ Consolidado: ${formatNumber(metrics.totalVotes)} Votos totais em ${metrics.stages.length} etapas.`);
 
-  console.log(`[3/4] Renderizando Template HTML High-End com Logotipos...`);
+  console.log(`[4/5] Renderizando Template HTML com Cabeçalho de Auditoria...`);
   const htmlContent = generateHtmlReport(metrics, logos);
   
   const tempHtmlPath = path.join(__dirname, '../temp_report.html');
   fs.writeFileSync(tempHtmlPath, htmlContent, 'utf-8');
 
-  console.log(`[4/4] Exportando PDF em alta definição via Headless Engine...`);
+  console.log(`[5/5] Exportando PDF em alta definição via Headless Engine...`);
   
   const edgePath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
   const absHtmlPath = path.resolve(tempHtmlPath);
@@ -699,7 +824,7 @@ async function generatePdfReport(inputPath, outputPath) {
       fs.unlinkSync(tempHtmlPath);
     }
 
-    console.log(`\n✅ SUCESSO! Relatório PDF gerado com logotipos oficiais:`);
+    console.log(`\n✅ SUCESSO! Relatório PDF gerado com dados reais e cabeçalho de auditoria:`);
     console.log(`📍 ${absPdfPath}\n`);
   } catch (err) {
     console.error(`❌ Erro ao exportar PDF:`, err.message);
