@@ -309,15 +309,14 @@ function generateHtmlReport(metrics, logos) {
     }
     .page:last-child { page-break-after: avoid; }
 
-    /* CABEÇALHO CLARO ESTILO AUDITORIA (WHITE HEADER BANNER) */
+    /* CABEÇALHO INTEGRADO COM A COR DO FUNDO (#121214) */
     .audit-header {
-      background: #FFFFFF;
-      padding: 14px 18mm 12px 18mm;
-      border-bottom: 3px solid #D97706; /* Faixa dourada no estilo auditoria */
+      background: #121214;
+      padding: 16mm 18mm 12px 18mm;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
 
     .brand-group {
@@ -330,6 +329,7 @@ function generateHtmlReport(metrics, logos) {
       height: 40px;
       max-width: 150px;
       object-fit: contain;
+      filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.3));
     }
 
     .header-titles {
@@ -340,7 +340,7 @@ function generateHtmlReport(metrics, logos) {
     .header-main-title {
       font-size: 13px;
       font-weight: 900;
-      color: #0F172A; /* Slate 900 */
+      color: #FFFFFF;
       letter-spacing: -0.3px;
       text-transform: uppercase;
     }
@@ -348,16 +348,18 @@ function generateHtmlReport(metrics, logos) {
     .header-sub-title {
       font-size: 8.5px;
       font-weight: 600;
-      color: #64748B;
+      color: #94A3B8;
       margin-top: 1px;
     }
 
     .header-tag-vortex {
       font-size: 7.5px;
       font-weight: 800;
-      color: #D97706; /* Amber Gold */
+      color: #00E5FF;
       letter-spacing: 0.5px;
       margin-top: 2px;
+      text-transform: uppercase;
+    }
       text-transform: uppercase;
     }
 
